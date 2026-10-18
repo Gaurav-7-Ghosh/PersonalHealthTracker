@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import { viteSingleFile } from 'vite-plugin-singlefile'
@@ -8,8 +9,10 @@ import { viteSingleFile } from 'vite-plugin-singlefile'
 export default defineConfig(({ mode }) => {
   const artifact = mode === 'artifact'
   const shim = fileURLToPath(new URL('./shims/jsx-runtime.js', import.meta.url))
+  const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
   return {
     base: './',
+    define: { __APP_VERSION__: JSON.stringify(version) },
     plugins: [viteSingleFile()],
     publicDir: artifact ? false : 'public',
     resolve: artifact ? { alias: { 'react/jsx-runtime': shim, 'react/jsx-dev-runtime': shim } } : {},

@@ -179,6 +179,8 @@ export function Settings() {
         </button>
       </section>
 
+      <p className="muted small center">Version {__APP_VERSION__}</p>
+
       <Confirm
         open={!!pending}
         title="Replace everything with this backup?"

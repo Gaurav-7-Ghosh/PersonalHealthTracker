@@ -14,7 +14,20 @@ npm run build        # dist/: one self-contained index.html + manifest + service
 npm run smoke        # click-through test at iPhone size against the build (needs Playwright's Chromium)
 ```
 
-To use it on your phone, host `dist/` on any static host with HTTPS (GitHub Pages works), open it in Safari, then Share > Add to Home Screen. The service worker caches the app so it opens with no signal.
+## Deploy (GitHub Pages, free)
+
+`.github/workflows/deploy.yml` type-checks, builds and runs the smoke test on every push and pull request, and publishes `main` to GitHub Pages.
+
+1. One time: in the repo on GitHub, open Settings > Pages and set Source to **GitHub Actions**.
+2. Push to `main` (or re-run the latest "Build and deploy" run from the Actions tab).
+3. The site is at `https://<user>.github.io/PersonalHealthTracker/`.
+4. On the iPhone, open that address in Safari, then Share > Add to Home Screen. The service worker caches the app so it opens with no signal.
+
+Data lives on each device, so a new deploy never touches it. Save a backup from Settings before clearing Safari data.
+
+## Releases
+
+The version comes from `package.json` and shows at the bottom of Settings. To cut a release: update `CHANGELOG.md`, run `npm version <x.y.z>` (bumps `package.json`, commits and tags `v<x.y.z>`), then `git push --follow-tags`.
 
 `npm run build:artifact` produces `dist-artifact/artifact.html`, a variant that loads React from cdnjs. It only exists for the claude.ai preview page.
 
@@ -25,12 +38,14 @@ src/
   types.ts        data model (Entry, Routine, Session, ...)
   db.ts           IndexedDB wrapper; falls back to memory if storage is blocked
   store.tsx       React context: in-memory state, write-through to IndexedDB, navigation stack
-  seed.ts         starter library (about 70 entries) and 6 routines, flagged sample: true
+  seed.ts         starter library (about 80 entries), flagged sample: true; no preset routines
   taxonomy.ts     regions, muscles, equipment, movement patterns, labels
   swap.ts         swap ranking: 0.55 muscle cosine + 0.25 pattern + 0.1 loading + 0.1 recent use
-  util.ts         ids, image resize (1080 px JPEG), YouTube oEmbed, beeps, wake lock
-  components/     Icon, FormCard, shared UI (Sheet, Stepper, EntryPicker, ...)
-  screens/        Today, Library, EntryView, EntryEdit, Capture (+ inbox), Routines,
+  util.ts         ids, image resize and crop (1600 px JPEG), YouTube thumbnails, beeps, wake lock
+  components/     Icon, BodyMap, FormCard, Ink (photo drawing, crop, full-screen view),
+                  LinkThumb, shared UI (Sheet, Stepper, RenameSheet, ...)
+  screens/        Today, StartWorkout (body map, muscles, exercise list), Library,
+                  EntryView, EntryEdit, FormEdit, Capture (+ inbox), Routines,
                   Session (+ swap sheet), Hiit (+ player), History, Settings
 public/           manifest, icon, service worker
 scripts/          smoke test, artifact build step
