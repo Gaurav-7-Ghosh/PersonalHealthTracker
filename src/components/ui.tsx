@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { KINDS, kindLabel } from '../taxonomy'
 import type { Entry, Kind } from '../types'
-import { photoUrl } from '../util'
+import { photoUrl, uid } from '../util'
 import { Icon } from './Icon'
 
 export function TopBar({ title, sub, right, onBack }: { title?: string; sub?: string; right?: React.ReactNode; onBack?: () => void }) {
@@ -34,7 +35,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
   if (!open) return null
-  return (
+  // Portal to <body> so the sheet sits above the tab bar whatever screen opened it.
+  return createPortal(
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
@@ -45,7 +47,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
         </div>
         <div className="sheet-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -323,23 +326,92 @@ export function EntryPicker({
   )
 }
 
-/** Toggle an exercise's bookmark. */
+/**
+ * Bookmark button. The first tap bookmarks straight away and opens "Save to",
+ * where the exercise can also go into your named lists.
+ */
 export function BookmarkButton({ entry }: { entry: Entry }) {
   const { saveEntry, notify } = useStore()
-  const on = !!entry.bookmarkedAt
+  const [open, setOpen] = useState(false)
+  const saved = !!entry.bookmarkedAt || !!entry.lists?.length
   return (
-    <button
-      type="button"
-      className={on ? 'icon-btn bm on' : 'icon-btn bm'}
-      aria-pressed={on}
-      aria-label={on ? 'Remove bookmark' : 'Bookmark'}
-      onClick={async () => {
-        await saveEntry({ ...entry, bookmarkedAt: on ? undefined : Date.now(), updatedAt: Date.now() })
-        notify(on ? 'Bookmark removed' : `Bookmarked in ${kindLabel(entry.kind)}`)
-      }}
-    >
-      <Icon name="bookmark" />
-    </button>
+    <>
+      <button
+        type="button"
+        className={saved ? 'icon-btn bm on' : 'icon-btn bm'}
+        aria-pressed={saved}
+        aria-label={saved ? 'Saved. Change bookmark and lists' : 'Bookmark'}
+        onClick={async () => {
+          if (!saved) {
+            await saveEntry({ ...entry, bookmarkedAt: Date.now(), updatedAt: Date.now() })
+            notify(`Bookmarked in ${kindLabel(entry.kind)}`)
+          }
+          setOpen(true)
+        }}
+      >
+        <Icon name="bookmark" />
+      </button>
+      <SaveToSheet entry={entry} open={open} onClose={() => setOpen(false)} />
+    </>
+  )
+}
+
+function SaveToSheet({ entry, open, onClose }: { entry: Entry; open: boolean; onClose: () => void }) {
+  const { entries, settings, saveEntry, saveSettings, notify } = useStore()
+  const [name, setName] = useState('')
+  // Read the live entry so toggles in a row build on each other.
+  const cur = entries.find((x) => x.id === entry.id) ?? entry
+  const inList = (id: string) => !!cur.lists?.includes(id)
+  const save = (patch: Partial<Entry>) => saveEntry({ ...cur, ...patch, updatedAt: Date.now() })
+  const toggleList = (id: string) => save({ lists: inList(id) ? cur.lists!.filter((x) => x !== id) : [...(cur.lists ?? []), id] })
+  const addList = async () => {
+    const clean = name.trim()
+    if (!clean) return
+    const existing = settings.lists.find((l) => l.name.toLowerCase() === clean.toLowerCase())
+    const list = existing ?? { id: uid(), name: clean, createdAt: Date.now() }
+    if (!existing) await saveSettings({ lists: [...settings.lists, list] })
+    if (!inList(list.id)) await save({ lists: [...(cur.lists ?? []), list.id] })
+    setName('')
+    notify(`Added to ${list.name}`)
+  }
+  return (
+    <Sheet open={open} onClose={onClose} title="Save to">
+      <div className="save-to">
+        <button type="button" className={cur.bookmarkedAt ? 'save-row on' : 'save-row'} aria-pressed={!!cur.bookmarkedAt} onClick={() => save({ bookmarkedAt: cur.bookmarkedAt ? undefined : Date.now() })}>
+          <Icon name="bookmark" size={18} />
+          <span className="list-main">
+            <span className="list-name">Bookmarks</span>
+            <span className="list-sub">Under {KINDS.find((k) => k.id === cur.kind)?.plural ?? kindLabel(cur.kind)}</span>
+          </span>
+          {cur.bookmarkedAt && <Icon name="check" size={18} />}
+        </button>
+        {settings.lists.map((l) => (
+          <button key={l.id} type="button" className={inList(l.id) ? 'save-row on' : 'save-row'} aria-pressed={inList(l.id)} onClick={() => toggleList(l.id)}>
+            <Icon name="routines" size={18} />
+            <span className="list-main">
+              <span className="list-name">{l.name}</span>
+              <span className="list-sub">{entries.filter((x) => x.lists?.includes(l.id)).length} saved</span>
+            </span>
+            {inList(l.id) && <Icon name="check" size={18} />}
+          </button>
+        ))}
+      </div>
+      <form
+        className="ink-text-row"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          addList()
+        }}
+      >
+        <input value={name} onChange={(ev) => setName(ev.target.value)} placeholder="New list, e.g. Morning mobility" aria-label="New list name" enterKeyHint="done" />
+        <button type="submit" className="btn small primary" disabled={!name.trim()}>
+          Add
+        </button>
+      </form>
+      <button type="button" className="btn ghost" onClick={onClose}>
+        Done
+      </button>
+    </Sheet>
   )
 }
 

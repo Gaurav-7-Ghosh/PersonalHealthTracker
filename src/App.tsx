@@ -1,6 +1,6 @@
 import { Icon } from './components/Icon'
 import { useStore } from './store'
-import { Bookmarks } from './screens/Bookmarks'
+import { Bookmarks, ListScreen } from './screens/Bookmarks'
 import { Capture } from './screens/Capture'
 import { EntryEdit } from './screens/EntryEdit'
 import { EntryView } from './screens/EntryView'
@@ -31,6 +31,7 @@ const SECTION: Partial<Record<Route['name'], Route['name']>> = {
   capture: 'today',
   body: 'today',
   bookmarks: 'today',
+  list: 'today',
   region: 'today',
   exercises: 'today',
   routines: 'today',
@@ -49,6 +50,8 @@ function Screen({ route }: { route: Route }) {
       return <ExerciseList key={route.region + (route.muscle ?? '')} region={route.region} muscle={route.muscle} />
     case 'bookmarks':
       return <Bookmarks kind={route.kind} />
+    case 'list':
+      return <ListScreen key={route.id} id={route.id} />
     case 'library':
       return <Library />
     case 'entry':

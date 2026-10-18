@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: Settings = {
   weightStep: 2.5,
   busyEquipment: [],
   seedVersion: 0,
+  lists: [],
 }
 
 export interface Store {

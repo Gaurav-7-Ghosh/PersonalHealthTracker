@@ -62,6 +62,8 @@ export interface Entry {
   notes: NoteRef[]
   /** Set when bookmarked; bookmarks are listed by section (kind), newest first. */
   bookmarkedAt?: number
+  /** Ids of the named lists this entry is in. */
+  lists?: string[]
   pinnedSwaps: string[]
   sample?: boolean
   createdAt: number
@@ -128,6 +130,14 @@ export interface Settings {
   weightStep: number
   busyEquipment: string[]
   seedVersion: number
+  /** Your own named lists, e.g. "Morning mobility". Membership lives on Entry.lists. */
+  lists: NamedList[]
+}
+
+export interface NamedList {
+  id: string
+  name: string
+  createdAt: number
 }
 
 export type Route =
@@ -137,6 +147,7 @@ export type Route =
   | { name: 'exercises'; region: string; muscle?: string }
   | { name: 'library' }
   | { name: 'bookmarks'; kind?: Kind }
+  | { name: 'list'; id: string }
   | { name: 'entry'; id: string }
   | { name: 'formEdit'; id: string }
   | { name: 'edit'; id?: string; kind?: Kind; region?: string; muscle?: string; equipment?: string; returnBack?: boolean }

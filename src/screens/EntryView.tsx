@@ -60,6 +60,13 @@ export function EntryView({ id }: { id: string }) {
         {e.equipment.map((q) => (
           <Tag key={q}>{q}</Tag>
         ))}
+        {settings.lists
+          .filter((l) => e.lists?.includes(l.id))
+          .map((l) => (
+            <Tag key={l.id} tone="accent">
+              {l.name}
+            </Tag>
+          ))}
         {e.regions.map((r) => (
           <Tag key={r} tone="soft">
             {r}

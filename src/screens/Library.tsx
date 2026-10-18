@@ -7,16 +7,17 @@ import type { Kind } from '../types'
 import { ago } from '../util'
 
 // Kept outside the component so filters survive opening an entry and coming back.
-const memo = { q: '', kind: 'all' as Kind | 'all', region: '', muscle: '', marked: false }
+const memo = { q: '', kind: 'all' as Kind | 'all', region: '', muscle: '', marked: false, listId: '' }
 
 export function Library() {
-  const { entries, go, history } = useStore()
+  const { entries, settings, go, history } = useStore()
   const [q, setQ] = useState(memo.q)
   const [kind, setKind] = useState(memo.kind)
   const [region, setRegion] = useState(memo.region)
   const [muscle, setMuscle] = useState(memo.muscle)
   const [marked, setMarked] = useState(memo.marked)
-  Object.assign(memo, { q, kind, region, muscle, marked })
+  const [listId, setListId] = useState(memo.listId)
+  Object.assign(memo, { q, kind, region, muscle, marked, listId })
 
   const muscles = REGIONS.find((r) => r.name === region)?.muscles ?? []
   const list = useMemo(() => {
@@ -25,6 +26,7 @@ export function Library() {
       (e) =>
         (kind === 'all' || e.kind === kind) &&
         (!marked || !!e.bookmarkedAt) &&
+        (!listId || !!e.lists?.includes(listId)) &&
         (!region || e.regions.includes(region) || e.muscles.some((m) => REGIONS.find((r) => r.name === region)?.muscles.includes(m.name) && m.role === 'primary')) &&
         (!muscle || e.muscles.some((m) => m.name === muscle)) &&
         (!needle ||
@@ -33,7 +35,7 @@ export function Library() {
           e.links.some((l) => l.label.toLowerCase().includes(needle) || l.title?.toLowerCase().includes(needle)) ||
           e.notes.some((n) => n.body.toLowerCase().includes(needle))),
     )
-  }, [entries, q, kind, region, muscle, marked])
+  }, [entries, q, kind, region, muscle, marked, listId])
 
   return (
     <div className="screen">
@@ -69,6 +71,11 @@ export function Library() {
         <Chip on={marked} onClick={() => setMarked(!marked)} label="Bookmarked only">
           <Icon name="bookmark" size={14} /> Bookmarked
         </Chip>
+        {settings.lists.map((l) => (
+          <Chip key={l.id} on={listId === l.id} onClick={() => setListId(listId === l.id ? '' : l.id)}>
+            {l.name}
+          </Chip>
+        ))}
         {REGIONS.map((r) => (
           <Chip
             key={r.name}

@@ -1777,3 +1777,25 @@ textarea {
   color: var(--fg);
   border: 1px solid var(--line);
 }
+
+.save-to {
+  display: grid;
+  gap: 8px;
+}
+.save-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-align: left;
+}
+.save-row.on {
+  border-color: var(--accent);
+}
+.save-row > svg:last-child {
+  color: var(--accent-ink);
+}
