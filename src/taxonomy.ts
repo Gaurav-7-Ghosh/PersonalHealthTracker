@@ -1,29 +1,18 @@
 import type { Kind, Measure, PhotoPosition } from './types'
 
 export const REGIONS: { name: string; muscles: string[] }[] = [
-  { name: 'Neck', muscles: ['Upper trapezius', 'Levator scapulae', 'Scalenes', 'Sternocleidomastoid'] },
-  { name: 'Chest', muscles: ['Pec major', 'Pec minor', 'Serratus anterior'] },
-  {
-    name: 'Shoulders',
-    muscles: ['Front delt', 'Side delt', 'Rear delt', 'Rotator cuff', 'Serratus anterior'],
-  },
-  {
-    name: 'Upper back',
-    muscles: ['Lats', 'Rhomboids', 'Mid trapezius', 'Lower trapezius', 'Teres major', 'Thoracic spine'],
-  },
-  { name: 'Arms', muscles: ['Biceps', 'Brachialis', 'Triceps', 'Forearm flexors', 'Forearm extensors'] },
-  {
-    name: 'Core',
-    muscles: ['Rectus abdominis', 'Obliques', 'Transversus abdominis', 'Erector spinae', 'Quadratus lumborum'],
-  },
-  {
-    name: 'Hips and glutes',
-    muscles: ['Glute max', 'Glute med', 'Hip flexors', 'Adductors', 'Piriformis', 'TFL'],
-  },
-  { name: 'Thighs', muscles: ['Quads', 'Hamstrings', 'Adductors'] },
-  { name: 'Lower leg', muscles: ['Calves', 'Soleus', 'Tibialis anterior', 'Ankle'] },
+  { name: 'Chest', muscles: ['Upper chest', 'Mid chest', 'Lower chest', 'Serratus anterior', 'Pec minor'] },
+  { name: 'Shoulders', muscles: ['Front delt', 'Side delt', 'Rear delt', 'Rotator cuff'] },
+  { name: 'Back', muscles: ['Lats', 'Upper traps', 'Mid back', 'Lower traps', 'Lower back', 'Thoracic spine'] },
+  { name: 'Arms', muscles: ['Biceps', 'Brachialis', 'Triceps', 'Forearms'] },
+  { name: 'Core', muscles: ['Upper abs', 'Lower abs', 'Obliques', 'Deep core'] },
+  { name: 'Glutes and hips', muscles: ['Glute max', 'Glute med', 'Hip flexors', 'Adductors', 'Piriformis'] },
+  { name: 'Legs', muscles: ['Quads', 'Hamstrings', 'Calves', 'Tibialis', 'Ankle'] },
+  { name: 'Neck', muscles: ['Upper traps', 'Levator scapulae', 'Neck flexors'] },
   { name: 'Full body', muscles: ['Conditioning'] },
 ]
+
+export const regionsOfMuscle = (m: string) => REGIONS.filter((r) => r.muscles.includes(m)).map((r) => r.name)
 
 export const EQUIPMENT = [
   'Barbell',
@@ -34,6 +23,7 @@ export const EQUIPMENT = [
   'Machine',
   'Cable',
   'Pull-up bar',
+  'Dip station',
   'Kettlebell',
   'Band',
   'Foam roller',
@@ -43,6 +33,7 @@ export const EQUIPMENT = [
 export const PATTERNS = [
   'Horizontal push',
   'Incline push',
+  'Decline push',
   'Vertical push',
   'Horizontal pull',
   'Vertical pull',
@@ -65,6 +56,7 @@ const RELATED: [string, string][] = [
   ['Horizontal push', 'Incline push'],
   ['Incline push', 'Vertical push'],
   ['Horizontal push', 'Chest fly'],
+  ['Horizontal push', 'Decline push'],
   ['Horizontal pull', 'Vertical pull'],
   ['Horizontal pull', 'Rear delt'],
   ['Squat', 'Lunge'],

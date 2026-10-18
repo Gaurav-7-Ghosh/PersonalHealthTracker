@@ -1294,7 +1294,7 @@ textarea {
   bottom: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
   background: var(--bg);
   border-top: 1px solid var(--line);
@@ -1347,4 +1347,87 @@ textarea {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* Start workout */
+.start-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 22px 20px;
+  border-radius: 20px;
+  border: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  text-align: left;
+}
+.start-card .muted {
+  color: var(--on-accent);
+  opacity: 0.75;
+}
+.start-title {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 700;
+}
+.quick.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.bodymap-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.bodymap {
+  width: min(62vw, 240px);
+  max-width: 100%;
+  height: auto;
+}
+.body-base {
+  fill: var(--raised);
+  stroke: var(--line);
+}
+.zone {
+  fill: var(--raised);
+  stroke: var(--muted);
+  stroke-opacity: 0.5;
+  stroke-width: 1;
+  cursor: pointer;
+  transition: fill 0.12s;
+}
+.zone:hover,
+.zone.on,
+.zone:active {
+  fill: var(--accent);
+  fill-opacity: 0.55;
+}
+.region-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.region-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-weight: 600;
+  text-align: left;
+}
+.list-row.big {
+  min-height: 64px;
+}
+.pick-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }

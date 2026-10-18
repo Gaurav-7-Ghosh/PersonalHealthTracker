@@ -8,10 +8,33 @@ import { deletePhoto, fetchLinkInfo, resizeImage, savePhoto, uid } from '../util
 
 const ROLES: (Role | undefined)[] = [undefined, 'primary', 'secondary', 'stabiliser']
 
-export function EntryEdit({ id, kind }: { id?: string; kind?: Kind }) {
+export function EntryEdit({
+  id,
+  kind,
+  region,
+  muscle,
+  equipment,
+  returnBack,
+}: {
+  id?: string
+  kind?: Kind
+  region?: string
+  muscle?: string
+  equipment?: string
+  returnBack?: boolean
+}) {
   const { entry, saveEntry, deleteEntry, back, replace, go, notify } = useStore()
   const original = id ? entry(id) : undefined
-  const [e, setE] = useState<Entry>(() => original ?? blankEntry(kind))
+  const [e, setE] = useState<Entry>(() => {
+    if (original) return original
+    const b = blankEntry(kind)
+    return {
+      ...b,
+      regions: region && region !== 'Full body' ? [region] : b.regions,
+      muscles: muscle ? [{ name: muscle, role: 'primary' }] : b.muscles,
+      equipment: equipment ? [equipment] : b.equipment,
+    }
+  })
   const [added, setAdded] = useState<string[]>([])
   const [removed, setRemoved] = useState<string[]>([])
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -70,7 +93,7 @@ export function EntryEdit({ id, kind }: { id?: string; kind?: Kind }) {
     }
     await saveEntry(clean)
     notify('Saved')
-    if (original) back()
+    if (original || returnBack) back()
     else replace({ name: 'entry', id: clean.id })
   }
 
@@ -88,7 +111,7 @@ export function EntryEdit({ id, kind }: { id?: string; kind?: Kind }) {
 
       <div className="field">
         <label htmlFor="f-name">Name</label>
-        <input id="f-name" value={e.name} placeholder="e.g. Incline Smith press" onChange={(x) => set({ name: x.target.value })} />
+        <input id="f-name" value={e.name} placeholder="e.g. Incline Smith press" onChange={(x) => set({ name: x.target.value })} autoFocus={!original} />
       </div>
 
       <div className="field">

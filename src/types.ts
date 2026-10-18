@@ -107,14 +107,17 @@ export interface Settings {
   restMobility: number
   weightStep: number
   busyEquipment: string[]
-  seeded: boolean
+  seedVersion: number
 }
 
 export type Route =
   | { name: 'today' }
+  | { name: 'body' }
+  | { name: 'region'; region: string }
+  | { name: 'exercises'; region: string; muscle?: string }
   | { name: 'library' }
   | { name: 'entry'; id: string }
-  | { name: 'edit'; id?: string; kind?: Kind }
+  | { name: 'edit'; id?: string; kind?: Kind; region?: string; muscle?: string; equipment?: string; returnBack?: boolean }
   | { name: 'capture'; url?: string; title?: string; inboxId?: string }
   | { name: 'routines' }
   | { name: 'routine'; id?: string; type?: RoutineType }

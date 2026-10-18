@@ -8,6 +8,7 @@ import { History, SessionDetail } from './screens/History'
 import { Library } from './screens/Library'
 import { RoutineEdit, Routines } from './screens/Routines'
 import { SessionScreen } from './screens/Session'
+import { BodyPicker, ExerciseList, RegionScreen } from './screens/StartWorkout'
 import { Settings } from './screens/Settings'
 import { Today } from './screens/Today'
 import type { Route } from './types'
@@ -15,7 +16,6 @@ import type { Route } from './types'
 const TABS: { name: Route['name']; label: string; icon: string }[] = [
   { name: 'today', label: 'Today', icon: 'today' },
   { name: 'library', label: 'Library', icon: 'library' },
-  { name: 'routines', label: 'Routines', icon: 'routines' },
   { name: 'history', label: 'History', icon: 'history' },
   { name: 'settings', label: 'Settings', icon: 'settings' },
 ]
@@ -26,6 +26,10 @@ const SECTION: Partial<Record<Route['name'], Route['name']>> = {
   routine: 'routines',
   sessionDetail: 'history',
   capture: 'today',
+  body: 'today',
+  region: 'today',
+  exercises: 'today',
+  routines: 'today',
   hiit: 'today',
 }
 
@@ -33,12 +37,18 @@ function Screen({ route }: { route: Route }) {
   switch (route.name) {
     case 'today':
       return <Today />
+    case 'body':
+      return <BodyPicker />
+    case 'region':
+      return <RegionScreen key={route.region} region={route.region} />
+    case 'exercises':
+      return <ExerciseList key={route.region + (route.muscle ?? '')} region={route.region} muscle={route.muscle} />
     case 'library':
       return <Library />
     case 'entry':
       return <EntryView key={route.id} id={route.id} />
     case 'edit':
-      return <EntryEdit key={route.id ?? 'new'} id={route.id} kind={route.kind} />
+      return <EntryEdit key={route.id ?? 'new'} {...route} />
     case 'capture':
       return <Capture key={(route.inboxId ?? '') + (route.url ?? '')} url={route.url} title={route.title} inboxId={route.inboxId} />
     case 'routines':

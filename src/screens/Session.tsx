@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FormCard } from '../components/FormCard'
 import { Icon } from '../components/Icon'
-import { Chip, Confirm, Empty, EntryPicker, Sheet, Stepper } from '../components/ui'
+import { Chip, Confirm, Empty, Sheet, Stepper } from '../components/ui'
 import { useStore } from '../store'
 import { rankSwaps, recentEntryIds } from '../swap'
 import type { Entry, SessionItem, SetLog } from '../types'
@@ -16,7 +16,6 @@ export function SessionScreen() {
   const [swapOpen, setSwapOpen] = useState(false)
   const [planOpen, setPlanOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
-  const [adding, setAdding] = useState(false)
   const [finishing, setFinishing] = useState(false)
   const [delSet, setDelSet] = useState<number | null>(null)
 
@@ -133,6 +132,9 @@ export function SessionScreen() {
             {total ? `Exercise ${active.current + 1} of ${total}` : 'No exercises yet'} · {setsDone} sets
           </div>
         </div>
+        <button type="button" className="icon-btn" aria-label="Add exercise" onClick={() => go({ name: 'body' })}>
+          <Icon name="plus" />
+        </button>
         <button type="button" className="btn small ghost" onClick={() => setFinishing(true)}>
           Finish
         </button>
@@ -149,8 +151,8 @@ export function SessionScreen() {
         <Empty
           title="Add your first exercise"
           action={
-            <button type="button" className="btn primary" onClick={() => setAdding(true)}>
-              Add exercise
+            <button type="button" className="btn primary" onClick={() => go({ name: 'body' })}>
+              Pick from the body map
             </button>
           }
         />
@@ -291,25 +293,12 @@ export function SessionScreen() {
           className="btn ghost"
           onClick={() => {
             setPlanOpen(false)
-            setAdding(true)
+            go({ name: 'body' })
           }}
         >
           <Icon name="plus" size={18} /> Add exercise
         </button>
       </Sheet>
-
-      <EntryPicker
-        open={adding}
-        onClose={() => setAdding(false)}
-        exclude={active.items.map((i) => i.entryId)}
-        onPick={(x) =>
-          updateActive((a) => ({
-            ...a,
-            items: [...a.items, { entryId: x.id, target: { entryId: x.id, sets: x.kind === 'strength' ? 3 : 2, reps: 10, hold: 30 }, sets: [] }],
-            current: a.items.length,
-          }))
-        }
-      />
 
       <Confirm
         open={delSet !== null}

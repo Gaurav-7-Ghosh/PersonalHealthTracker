@@ -78,7 +78,7 @@ export function Settings() {
     for (const s of b.sessions) await db.put('sessions', s.id, s)
     for (const i of b.inbox) await db.put('inbox', i.id, i)
     for (const [id, d] of Object.entries(b.photos)) await savePhoto(id, await dataUrlToBlob(d))
-    await db.put('meta', 'settings', { ...b.settings, seeded: true })
+    await db.put('meta', 'settings', b.settings)
     await reload()
     notify('Backup restored')
   }
@@ -170,7 +170,7 @@ export function Settings() {
 
       <section className="block">
         <h2>Starter data</h2>
-        <p className="muted">The app came with common exercises, stretches, HIIT moves and a few routines. Your own entries are never touched by this.</p>
+        <p className="muted">The app came with common exercises, stretches and HIIT moves so the lists aren't empty. Your own entries, and any starter entry you edited or logged, are never touched by this.</p>
         <button type="button" className="btn ghost" onClick={() => setRemoveSamples(true)}>
           Remove untouched starter entries
         </button>

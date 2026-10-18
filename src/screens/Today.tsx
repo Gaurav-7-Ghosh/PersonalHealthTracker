@@ -1,25 +1,11 @@
 import { Icon } from '../components/Icon'
 import { useStore } from '../store'
-import type { Routine } from '../types'
-import { fmtDuration } from '../util'
-
-const TYPE_LABEL = { gym: 'Gym', mobility: 'Mobility', hiit: 'Home HIIT' }
+import { fmtDate, fmtDuration } from '../util'
 
 export function Today() {
-  const { active, routines, sessions, inbox, entry, go, startSession } = useStore()
+  const { active, routines, sessions, inbox, go } = useStore()
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
-
-  const start = async (r: Routine) => {
-    if (r.type === 'hiit') return go({ name: 'hiit', routineId: r.id })
-    await startSession({ routine: r })
-    go({ name: 'session' })
-  }
-
-  const ordered = [...routines].sort((a, b) => {
-    const la = sessions.find((s) => s.routineId === a.id)?.startedAt ?? 0
-    const lb = sessions.find((s) => s.routineId === b.id)?.startedAt ?? 0
-    return la - lb || a.name.localeCompare(b.name)
-  })
+  const recent = sessions.slice(0, 3)
 
   return (
     <div className="screen">
@@ -28,38 +14,33 @@ export function Today() {
         <h1>Today</h1>
       </header>
 
-      {active && (
-        <button type="button" className="card resume" onClick={() => go(active.type === 'hiit' ? { name: 'hiit' } : { name: 'session' })}>
+      {active ? (
+        <button type="button" className="card resume" onClick={() => go({ name: 'session' })}>
           <span>
             <span className="eyebrow accent-ink">In progress</span>
-            <span className="card-title">{active.name}</span>
+            <span className="card-title">{active.name === 'Workout' ? 'Workout' : active.name}</span>
             <span className="muted">
-              {active.items.reduce((n, i) => n + i.sets.length, 0)} sets logged · started {fmtDuration(Date.now() - active.startedAt)} ago
+              {active.items.length} exercises · {active.items.reduce((n, i) => n + i.sets.length, 0)} sets · started {fmtDuration(Date.now() - active.startedAt)} ago
             </span>
           </span>
           <Icon name="next" size={24} />
         </button>
+      ) : (
+        <button type="button" className="start-card" onClick={() => go({ name: 'body' })}>
+          <Icon name="body" size={40} />
+          <span className="start-title">Start workout</span>
+          <span className="muted">Pick a body part, then a muscle, then the exercise</span>
+        </button>
       )}
 
-      <div className="quick">
-        <button type="button" className="quick-btn" onClick={() => go({ name: 'capture' })}>
-          <Icon name="link" size={22} />
-          Save a link
-        </button>
+      <div className="quick three">
         <button type="button" className="quick-btn" onClick={() => go({ name: 'hiit' })}>
           <Icon name="flame" size={22} />
           Home HIIT
         </button>
-        <button
-          type="button"
-          className="quick-btn"
-          onClick={async () => {
-            await startSession({ name: 'Quick session', entryIds: [] })
-            go({ name: 'session' })
-          }}
-        >
-          <Icon name="dumbbell" size={22} />
-          Empty session
+        <button type="button" className="quick-btn" onClick={() => go({ name: 'capture' })}>
+          <Icon name="link" size={22} />
+          Save a link
         </button>
         <button type="button" className="quick-btn" onClick={() => go({ name: 'capture' })}>
           <Icon name="inbox" size={22} />
@@ -68,38 +49,36 @@ export function Today() {
         </button>
       </div>
 
-      <div className="section-head">
-        <h2>Start a routine</h2>
+      {recent.length > 0 && (
+        <section className="block">
+          <div className="section-head">
+            <h2>Recent</h2>
+            <button type="button" className="link-btn" onClick={() => go({ name: 'history' })}>
+              History
+            </button>
+          </div>
+          <ul className="list compact">
+            {recent.map((s) => (
+              <li key={s.id}>
+                <button type="button" className="list-row" onClick={() => go({ name: 'sessionDetail', id: s.id })}>
+                  <span className="list-main">
+                    <span className="list-name">{s.name}</span>
+                    <span className="list-sub">
+                      {fmtDate(s.startedAt)} · {s.hiit ? `${s.hiit.roundsDone} rounds` : `${s.items.reduce((n, i) => n + i.sets.length, 0)} sets`}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {routines.length > 0 && (
         <button type="button" className="link-btn" onClick={() => go({ name: 'routines' })}>
-          All routines
+          Saved routines ({routines.length})
         </button>
-      </div>
-      <p className="muted small">Least recently done first.</p>
-      <div className="stack">
-        {ordered.map((r) => {
-          const last = sessions.find((s) => s.routineId === r.id)
-          return (
-            <div key={r.id} className="card routine-card">
-              <div className="routine-head">
-                <div>
-                  <span className="eyebrow">{TYPE_LABEL[r.type]}</span>
-                  <div className="card-title">{r.name}</div>
-                </div>
-                <span className="muted small">{last ? new Date(last.startedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : 'Not done yet'}</span>
-              </div>
-              <div className="muted small clamp">
-                {r.items
-                  .map((i) => entry(i.entryId)?.name)
-                  .filter(Boolean)
-                  .join(' · ')}
-              </div>
-              <button type="button" className="btn primary" onClick={() => start(r)}>
-                {r.type === 'hiit' ? 'Set up timer' : 'Start'}
-              </button>
-            </div>
-          )
-        })}
-      </div>
+      )}
     </div>
   )
 }

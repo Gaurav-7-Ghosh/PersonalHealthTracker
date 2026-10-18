@@ -4,12 +4,14 @@ import { SEED_ENTRIES, SEED_ROUTINES } from './seed'
 import type { Entry, InboxItem, Route, Routine, RoutineItem, Session, SessionItem, SetLog, Settings } from './types'
 import { deletePhoto, uid } from './util'
 
+const SEED_VERSION = 2
+
 const DEFAULT_SETTINGS: Settings = {
   restStrength: 90,
   restMobility: 30,
   weightStep: 2.5,
   busyEquipment: [],
-  seeded: false,
+  seedVersion: 0,
 }
 
 export interface Store {
@@ -24,6 +26,8 @@ export interface Store {
   route: Route
   go: (r: Route) => void
   replace: (r: Route) => void
+  resetTo: (rs: Route[]) => void
+  addToSession: (e: Entry) => Promise<void>
   back: () => void
   canGoBack: boolean
   toast: string | null
@@ -62,12 +66,20 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
   const toastTimer = useRef<number>()
 
   const reload = useCallback(async () => {
-    let s = { ...DEFAULT_SETTINGS, ...((await db.get<Settings>('meta', 'settings')) ?? {}) }
-    if (!s.seeded) {
+    const stored: Partial<Settings> & { seeded?: boolean } = (await db.get<Settings & { seeded?: boolean }>('meta', 'settings')) ?? {}
+    let s: Settings = { ...DEFAULT_SETTINGS, ...stored, seedVersion: stored.seedVersion ?? (stored.seeded ? 1 : 0) }
+    if (s.seedVersion < SEED_VERSION) {
+      // Add or refresh starter entries the user has not edited; drop starter routines.
       const now = Date.now()
-      for (const e of SEED_ENTRIES) await db.put('entries', e.id, { ...e, createdAt: now, updatedAt: now })
+      const existing = new Map((await db.getAll<Entry>('entries')).map((e) => [e.id, e]))
+      for (const e of SEED_ENTRIES) {
+        const old = existing.get(e.id)
+        if (!old) await db.put('entries', e.id, { ...e, createdAt: now, updatedAt: now })
+        else if (old.sample && old.updatedAt === old.createdAt) await db.put('entries', e.id, { ...e, createdAt: old.createdAt, updatedAt: old.createdAt })
+      }
+      for (const r of await db.getAll<Routine>('routines')) if (r.sample) await db.del('routines', r.id)
       for (const r of SEED_ROUTINES) await db.put('routines', r.id, { ...r, updatedAt: now })
-      s = { ...s, seeded: true }
+      s = { ...s, seedVersion: SEED_VERSION }
       await db.put('meta', 'settings', s)
     }
     const [es, rs, ss, ib, act] = await Promise.all([
@@ -209,12 +221,18 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
 
   const finishActive = useCallback(async () => {
     if (!active) return undefined
-    const done: Session = { ...active, endedAt: Date.now(), items: active.items.filter((i) => i.sets.length > 0) }
+    const items = active.items.filter((i) => i.sets.length > 0)
+    let name = active.name
+    if (name === 'Workout') {
+      const regions = [...new Set(items.flatMap((i) => byId.get(i.entryId)?.regions.slice(0, 1) ?? []))]
+      if (regions.length) name = regions.slice(0, 3).join(' + ')
+    }
+    const done: Session = { ...active, name, endedAt: Date.now(), items }
     setActive(undefined)
     persistActive(undefined)
     if (done.items.length || done.hiit) await saveSession(done)
     return done
-  }, [active, saveSession])
+  }, [active, saveSession, byId])
 
   const discardActive = useCallback(async () => {
     setActive(undefined)
@@ -241,6 +259,29 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
   const history = useCallback((id: string) => historyIndex.get(id) ?? [], [historyIndex])
   const lastSets = useCallback((id: string) => historyIndex.get(id)?.[0]?.item.sets, [historyIndex])
 
+  const resetTo = useCallback((rs: Route[]) => {
+    setStack(rs)
+    window.scrollTo(0, 0)
+  }, [])
+
+  // Adds an exercise to the running workout, starting one if needed, and opens it.
+  const addToSession = useCallback(
+    async (e: Entry) => {
+      const target: RoutineItem = { entryId: e.id, sets: e.kind === 'strength' ? 3 : 2, reps: e.measure === 'hold' ? undefined : 10, hold: e.measure === 'hold' ? 30 : undefined }
+      if (!active) await startSession({ name: 'Workout', entryIds: [] })
+      setActive((s) => {
+        if (!s) return s
+        const at = s.items.findIndex((i) => i.entryId === e.id && i.sets.length < i.target.sets)
+        const next = at >= 0 ? { ...s, current: at } : { ...s, items: [...s.items, { entryId: e.id, target, sets: [] }], current: s.items.length }
+        persistActive(next)
+        return next
+      })
+      setStack([{ name: 'today' }, { name: 'session' }])
+      window.scrollTo(0, 0)
+    },
+    [active, startSession],
+  )
+
   const route = stack[stack.length - 1]
 
   const value: Store = {
@@ -253,8 +294,10 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
     settings,
     active,
     route,
-    go: (r) => (['today', 'library', 'routines', 'history', 'settings'].includes(r.name) ? goTab(r) : go(r)),
+    go: (r) => (['today', 'library', 'history', 'settings'].includes(r.name) ? goTab(r) : go(r)),
     replace,
+    resetTo,
+    addToSession,
     back,
     canGoBack: stack.length > 1,
     toast,
