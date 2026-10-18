@@ -8,10 +8,24 @@ export interface MuscleRef {
   role: Role
 }
 
+export type InkColor = string
+export type InkMark =
+  | { type: 'pen' | 'line' | 'arrow'; color: InkColor; pts: number[] }
+  | { type: 'text'; color: InkColor; x: number; y: number; text: string }
+
+/** Drawings on a photo, in the photo's own pixel space (w x h) so they scale with it. */
+export interface Ink {
+  w: number
+  h: number
+  marks: InkMark[]
+}
+
 export interface PhotoRef {
   id: string
   position: PhotoPosition
+  /** Notes for this frame; shown under the photo. */
   caption?: string
+  ink?: Ink
 }
 
 export interface LinkRef {
@@ -117,6 +131,7 @@ export type Route =
   | { name: 'exercises'; region: string; muscle?: string }
   | { name: 'library' }
   | { name: 'entry'; id: string }
+  | { name: 'formEdit'; id: string }
   | { name: 'edit'; id?: string; kind?: Kind; region?: string; muscle?: string; equipment?: string; returnBack?: boolean }
   | { name: 'capture'; url?: string; title?: string; inboxId?: string }
   | { name: 'routines' }

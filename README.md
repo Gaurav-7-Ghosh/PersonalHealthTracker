@@ -40,7 +40,9 @@ Navigation is an in-memory stack in the store (no router dependency); tabs reset
 
 ## Data
 
-- Entries hold `cues`, `photos` (blob ids in the `photos` store, tagged setup/start/mid/end/other), labeled `links` and `notes`, muscles with roles, equipment and movement pattern.
+- Entries hold `cues`, `photos` (blob ids in the `photos` store, tagged setup/start/mid/end/other, each with a note and optional `ink`), labeled `links` and `notes`, muscles with roles, equipment and movement pattern.
+- `ink` is the drawing on a photo (pen, line, arrow, text) stored as shapes in the photo's pixel space, so it stays sharp and editable. The form card editor (`src/screens/FormEdit.tsx`, `src/components/Ink.tsx`) adds photos by file or paste, reorders, crops, draws and edits notes.
+- `npm run smoke` takes `FORM_SHOTS=<folder>` to test the form card editor with real screenshots instead of generated stand-ins.
 - The active session is saved on every change under `meta/active`, so closing the app mid-workout loses nothing.
 - Settings > Save backup exports everything, photos included, as one JSON file; Restore replaces the device's data with a backup.
 

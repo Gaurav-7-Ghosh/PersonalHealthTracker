@@ -744,11 +744,24 @@ textarea {
 }
 .photo-frame {
   position: relative;
+  display: flex;
+  justify-content: center;
   border-radius: 12px;
   overflow: hidden;
   background: var(--raised);
-  aspect-ratio: 4 / 3;
   max-width: 100%;
+}
+.photo-note {
+  margin: 0;
+  white-space: pre-line;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.formcard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 .photo {
   width: 100%;
@@ -1537,4 +1550,191 @@ textarea {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Photos with drawings */
+.inkwrap {
+  position: relative;
+  max-width: 100%;
+}
+.inkwrap img,
+.inkwrap svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.inkwrap img {
+  object-fit: fill;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.inkwrap-ph {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+.inkwrap-btn {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+.ink-text {
+  font-family: 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', var(--body), cursive;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 0.12em;
+  stroke-linejoin: round;
+}
+.lightbox,
+.ink-editor {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #0b0e0d;
+  color: #eaf0ec;
+  padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  color-scheme: dark;
+}
+.lightbox-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+}
+.lightbox-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+.lightbox-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+.lightbox-note {
+  white-space: pre-line;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #1a201e;
+  font-size: 16px;
+  line-height: 1.4;
+  max-height: 22vh;
+  overflow: auto;
+}
+.lightbox-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ink-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ink-input {
+  touch-action: none;
+  cursor: crosshair;
+}
+.ink-tools {
+  display: grid;
+  gap: 8px;
+}
+.ink-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ink-colors {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+.swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  padding: 0;
+}
+.swatch.on {
+  outline: 3px solid #eaf0ec;
+  outline-offset: 2px;
+}
+.ink-text-row {
+  display: flex;
+  gap: 8px;
+}
+.ink-text-row input {
+  flex: 1;
+  min-width: 0;
+}
+.crop-shade {
+  fill: rgba(0, 0, 0, 0.55);
+}
+.crop-box {
+  fill: none;
+  stroke: #c4f36a;
+}
+.cue-edit {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cue-edit li {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.cue-edit textarea {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+  field-sizing: content;
+}
+.cue-btns {
+  display: flex;
+}
+.fc-photos {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fc-photo {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  justify-items: center;
+}
+.fc-photo > textarea,
+.fc-photo-row {
+  width: 100%;
+}
+.fc-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fc-photo-row select {
+  flex: 1;
+  min-width: 0;
 }

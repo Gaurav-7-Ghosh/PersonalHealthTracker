@@ -3,6 +3,7 @@ import { useStore } from './store'
 import { Capture } from './screens/Capture'
 import { EntryEdit } from './screens/EntryEdit'
 import { EntryView } from './screens/EntryView'
+import { FormEdit } from './screens/FormEdit'
 import { Hiit } from './screens/Hiit'
 import { History, SessionDetail } from './screens/History'
 import { Library } from './screens/Library'
@@ -23,6 +24,7 @@ const TABS: { name: Route['name']; label: string; icon: string }[] = [
 const SECTION: Partial<Record<Route['name'], Route['name']>> = {
   entry: 'library',
   edit: 'library',
+  formEdit: 'library',
   routine: 'routines',
   sessionDetail: 'history',
   capture: 'today',
@@ -47,6 +49,8 @@ function Screen({ route }: { route: Route }) {
       return <Library />
     case 'entry':
       return <EntryView key={route.id} id={route.id} />
+    case 'formEdit':
+      return <FormEdit key={route.id} id={route.id} />
     case 'edit':
       return <EntryEdit key={route.id ?? 'new'} {...route} />
     case 'capture':

@@ -289,7 +289,7 @@ export function SessionScreen() {
       )}
 
       <Sheet open={formOpen} onClose={() => setFormOpen(false)} title={e?.name ?? ''}>
-        {e && <FormCard entry={e} />}
+        {e && <FormCard entry={e} onEdit={() => (setFormOpen(false), go({ name: 'formEdit', id: e.id }))} />}
       </Sheet>
 
       <Sheet open={planOpen} onClose={() => setPlanOpen(false)} title="Session plan">

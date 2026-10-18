@@ -25,8 +25,18 @@ export const fmtDuration = (ms: number) => {
 
 export const fmtNum = (n?: number) => (n === undefined ? '' : Number.isInteger(n) ? String(n) : n.toFixed(1))
 
-// Resize a photo to at most 1080 px wide as JPEG (about 150 KB) before storing it.
-export async function resizeImage(file: Blob, max = 1080): Promise<Blob> {
+// Resize a photo to at most 1600 px on its long side as JPEG before storing it.
+// Screenshots with handwriting need more pixels than a plain photo to stay readable.
+export async function resizeImage(file: Blob, max = 1600): Promise<Blob> {
+  return redraw(file, (img) => ({ sx: 0, sy: 0, sw: img.naturalWidth, sh: img.naturalHeight }), max)
+}
+
+/** Cut a rectangle (in the image's pixels) out of a stored photo. */
+export async function cropImage(file: Blob, r: { x: number; y: number; w: number; h: number }): Promise<Blob> {
+  return redraw(file, () => ({ sx: r.x, sy: r.y, sw: r.w, sh: r.h }), Infinity)
+}
+
+async function redraw(file: Blob, area: (img: HTMLImageElement) => { sx: number; sy: number; sw: number; sh: number }, max: number): Promise<Blob> {
   const url = URL.createObjectURL(file)
   try {
     const img = await new Promise<HTMLImageElement>((res, rej) => {
@@ -35,14 +45,15 @@ export async function resizeImage(file: Blob, max = 1080): Promise<Blob> {
       i.onerror = rej
       i.src = url
     })
-    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight))
-    const w = Math.round(img.naturalWidth * scale)
-    const h = Math.round(img.naturalHeight * scale)
+    const { sx, sy, sw, sh } = area(img)
+    const scale = Math.min(1, max / Math.max(sw, sh))
+    const w = Math.max(1, Math.round(sw * scale))
+    const h = Math.max(1, Math.round(sh * scale))
     const canvas = document.createElement('canvas')
     canvas.width = w
     canvas.height = h
-    canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
-    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', 0.8))
+    canvas.getContext('2d')!.drawImage(img, sx, sy, sw, sh, 0, 0, w, h)
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', 0.85))
     return blob ?? file
   } finally {
     URL.revokeObjectURL(url)

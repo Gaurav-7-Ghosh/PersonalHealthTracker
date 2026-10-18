@@ -63,7 +63,7 @@ export function EntryView({ id }: { id: string }) {
         ))}
       </div>
 
-      <FormCard entry={e} onAddPhotos={() => go({ name: 'edit', id: e.id })} />
+      <FormCard entry={e} onAddPhotos={() => go({ name: 'formEdit', id: e.id })} onEdit={() => go({ name: 'formEdit', id: e.id })} />
 
       {Object.entries(linkGroups).length > 0 && (
         <section className="block">

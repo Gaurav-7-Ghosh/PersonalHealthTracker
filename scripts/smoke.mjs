@@ -1,7 +1,8 @@
 // Click-through smoke test at iPhone size against the production build.
 // Usage: npm run build && npm run smoke   (needs a Chromium for Playwright)
 import { spawn } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { chromium } from 'playwright'
 
 const PORT = 4179
@@ -24,7 +25,7 @@ const step = async (name, fn) => {
     await fn()
     console.log('ok  ', name)
   } catch (e) {
-    console.log('FAIL', name, e.message.split('\n')[0])
+    console.log('FAIL', name, e.message.split('\n').slice(0, 3).join(' | '))
     errors.push(name)
     await shot('fail-' + name.replace(/\W+/g, '-'))
   }
@@ -52,7 +53,7 @@ try {
   })
 
   await step('edit entry: add link and note', async () => {
-    await page.getByRole('button', { name: 'Edit' }).click()
+    await page.getByRole('button', { name: 'Edit', exact: true }).click()
     await page.getByRole('button', { name: 'Add link' }).click()
     await page.getByLabel('Link').fill('https://www.youtube.com/watch?v=example')
     await page.getByLabel('Title').fill('Serratus wall slide, form breakdown')
@@ -133,6 +134,77 @@ try {
     await page.getByText('Swapped from Incline barbell bench press').waitFor()
     await page.getByText('Chest + Back').first().waitFor()
     await shot('12-summary')
+  })
+
+  await step('form card editor: screenshots, drawing, crop, notes', async () => {
+    await page.getByRole('navigation').getByRole('button', { name: 'Library' }).click()
+    await page.getByRole('tab', { name: 'All' }).click()
+    const chest = page.getByRole('button', { name: 'Chest', exact: true })
+    if ((await chest.getAttribute('aria-pressed')) === 'true') await chest.click()
+    await page.getByLabel('Search library').fill('bent-over row')
+    await page.getByText('Barbell bent-over row').first().click()
+    await page.getByRole('button', { name: 'Edit form card' }).click()
+    await page.getByRole('heading', { name: 'Form card' }).waitFor()
+    // FORM_SHOTS=folder of real screenshots; otherwise draw stand-ins in the browser.
+    const dir = process.env.FORM_SHOTS
+    const files = dir
+      ? readdirSync(dir).filter((f) => /\.(png|jpe?g)$/i.test(f)).sort().map((f) => join(dir, f))
+      : await page.evaluate(() =>
+          [[420, 540], [880, 330], [930, 340]].map(([w, h], i) => {
+            const c = document.createElement('canvas')
+            c.width = w
+            c.height = h
+            const g = c.getContext('2d')
+            g.fillStyle = ['#345', '#543', '#354'][i]
+            g.fillRect(0, 0, w, h)
+            return { name: `shot${i}.png`, mimeType: 'image/png', buffer: c.toDataURL('image/png').split(',')[1] }
+          }),
+        ).then((list) => list.map((f) => ({ ...f, buffer: Buffer.from(f.buffer, 'base64') })))
+    await page.locator('#fc-photos').setInputFiles(files)
+    await page.getByLabel('Notes for photo 3').waitFor()
+    await page.getByLabel('Position of photo 2').selectOption('setup')
+    await page.getByLabel('Notes for photo 2').fill('Neutral back\nPush the hips back')
+
+    // Draw an arrow and a typed note on the first photo.
+    await page.getByRole('listitem', { name: /Photo 1/ }).getByRole('button', { name: 'Draw' }).click()
+    const canvas = page.getByTestId('ink-canvas')
+    await canvas.waitFor()
+    const b = await canvas.boundingBox()
+    await page.getByRole('tab', { name: 'Arrow' }).click()
+    await page.mouse.move(b.x + b.width * 0.3, b.y + b.height * 0.85)
+    await page.mouse.down()
+    await page.mouse.move(b.x + b.width * 0.2, b.y + b.height * 0.92, { steps: 5 })
+    await page.mouse.up()
+    await page.getByRole('tab', { name: 'Text' }).click()
+    await page.mouse.click(b.x + b.width * 0.25, b.y + b.height * 0.75)
+    await page.getByLabel('Note text').fill('Feet slightly out')
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await shot('17-ink-editor')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.getByRole('button', { name: 'Edit drawing' }).waitFor()
+
+    // Crop the slide text off the third screenshot.
+    await page.getByRole('listitem', { name: /Photo 3/ }).getByRole('button', { name: 'Crop' }).click()
+    const crop = page.getByTestId('crop-canvas')
+    await crop.waitFor()
+    const c = await crop.boundingBox()
+    await page.mouse.move(c.x + c.width * 0.29, c.y + 2)
+    await page.mouse.down()
+    await page.mouse.move(c.x + c.width - 2, c.y + c.height - 2, { steps: 5 })
+    await page.mouse.up()
+    await page.getByRole('button', { name: 'Apply' }).click()
+    await page.getByText('Cropped').waitFor()
+    await shot('18-form-edit')
+
+    await page.getByRole('button', { name: 'Done' }).click()
+    await page.getByRole('tab', { name: 'Setup 2' }).click()
+    await page.getByText('Push the hips back').waitFor()
+    await page.getByRole('tab', { name: 'Setup 1' }).click()
+    await shot('19-form-card')
+    await page.getByRole('button', { name: /Open full screen/ }).click()
+    await page.getByRole('dialog').locator('text=Feet slightly out').waitFor()
+    await shot('20-lightbox')
+    await page.getByRole('button', { name: 'Close' }).click()
   })
 
   await step('history shows previous sets', async () => {
