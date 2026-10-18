@@ -41,6 +41,7 @@ src/
   taxonomy.ts       regions -> muscles, equipment, movement patterns, labels, positions
   seed.ts           ~80 starter entries (sample: true); no preset routines
   swap.ts           ranking alternatives when equipment is busy
+  snapshot.ts       draws a finished workout as a shareable PNG (canvas)
   sync.ts           optional Supabase sync: sign-in, outbox, pull/push, photo transfer (docs/SYNC.md)
   util.ts           ids, dates, image resize/crop, photo blob cache, YouTube helpers, beeps, wake lock
   env.d.ts          __APP_VERSION__ (injected from package.json by vite.config.ts)
@@ -53,7 +54,7 @@ src/
     Icon.tsx        inline stroke icons
     ui.tsx          TopBar, Sheet, Confirm, Stepper, RenameSheet, BookmarkButton (+ Save to sheet), BookmarkMark, Chip, Tag, Photo, Thumb, Empty, EntryPicker
   screens/
-    Today.tsx         blank home: Start workout, Home HIIT, Save a link, Inbox, recent sessions
+    Today.tsx         blank home: Start workout, Home HIIT, Save a link, Bookmarks, recent sessions
     StartWorkout.tsx  BodyPicker -> RegionScreen -> ExerciseList (equipment filter, create own)
     Library.tsx       search + kind/region/muscle filters + Bookmarked chip
     Bookmarks.tsx     Bookmarks (your lists + by section) and ListScreen
@@ -63,7 +64,7 @@ src/
     Session.tsx       logging: steppers, Last time card, rest timer, swap sheet, finish
     Hiit.tsx          interval setup + full-screen player
     Capture.tsx       save a link to an exercise, or to the inbox
-    History.tsx       session list + SessionDetail
+    History.tsx       session list + SessionDetail + ShareSheet (workout image)
     Routines.tsx      saved routines (reachable from Today when any exist)
     Settings.tsx      timers, backup/restore, Shortcut setup, starter data, version
 public/             manifest.webmanifest, icon.svg, sw.js

@@ -300,6 +300,19 @@ try {
     await page.getByRole('button', { name: 'Morning mobility', exact: true }).click()
   })
 
+  await step('share a workout as an image', async () => {
+    await page.getByRole('navigation').getByRole('button', { name: 'History' }).click()
+    await page.getByText('Chest + Back').first().click()
+    await page.getByRole('button', { name: 'Share workout' }).click()
+    const sheet = page.getByRole('dialog', { name: 'Share workout' })
+    await sheet.getByRole('img', { name: /Workout summary/ }).waitFor()
+    await shot('27-share-sheet')
+    const [dl] = await Promise.all([page.waitForEvent('download'), sheet.getByRole('button', { name: 'Download image' }).click()])
+    if (!/^workout-\d{4}-\d{2}-\d{2}\.png$/.test(dl.suggestedFilename())) throw new Error('bad file name ' + dl.suggestedFilename())
+    await dl.saveAs(`${shots}/28-workout-image.png`)
+    await page.keyboard.press('Escape')
+  })
+
   await step('hiit timer runs', async () => {
     await page.getByRole('navigation').getByRole('button', { name: 'Today' }).click()
     await page.getByRole('button', { name: 'Home HIIT' }).click()

@@ -68,10 +68,11 @@ flowchart LR
   IG["Instagram / Safari / YouTube<br/>Share > Save to Workout"] --> SC["Apple Shortcut<br/>URL-encode, open app?url="]
   SC --> M["main.tsx initialRoute()"] --> C["Capture screen"]
   C -->|pick exercise + label| E["entry.links += {label, url, title, thumb}"]
-  C -->|Sort later| I["Inbox"] --> C
+  I["Unsorted links<br/>(old inbox, shown only if any)"] --> C
 ```
 
 - **Code:** `screens/Capture.tsx`. Settings shows the steps for setting up the Shortcut.
+- **No inbox:** every link is saved to an exercise (or a new one made on the spot). The old inbox is kept in IndexedDB; any links still in it show under Unsorted links on this screen.
 - **Titles and thumbnails:** `fetchLinkInfo(url)` in `util.ts` gets the YouTube title through oEmbed when online. The thumbnail address comes from the video id (`youtubeThumb`), so it works offline, and the service worker caches the image.
 - **Covers:** Instagram and TikTok don't share thumbnails, so EntryEdit lets you pick a cover image per link, stored in `link.cover`. `LinkThumb` shows the cover, else the YouTube thumbnail, else a play icon.
 
@@ -88,7 +89,13 @@ flowchart LR
 - **Player:** a fixed full-screen overlay with a ring countdown, beeps in the last 3 seconds, vibration and a wake lock.
 - **Saving:** finishing saves a session with a `hiit` block. Anything under 30 seconds is not saved.
 
-## 7. Backup, restore, starter data
+## 7. Share a workout as an image
+
+- **Where:** Share workout on a finished session (History, or straight after Finish).
+- **Code:** `src/snapshot.ts` draws a 1080 px wide PNG on a canvas: date, name, totals (`sessionTotals`, also used by the session page), front and back figures from `drawBody` in `components/BodyMap.tsx` (primary muscles full colour, secondary half), the muscles worked as text, and each exercise with its sets as pills.
+- **Sharing:** `ShareSheet` in `screens/History.tsx` shows a preview. Share uses `navigator.share` with the PNG file (WhatsApp, Messages, Save Image on iPhone); Download image saves the file anywhere.
+
+## 7b. Backup, restore, starter data
 
 - **Code:** `screens/Settings.tsx`.
 - **Backup:** creates one JSON file with every store, photos included as data URLs. It uses the share sheet where available, otherwise a download.

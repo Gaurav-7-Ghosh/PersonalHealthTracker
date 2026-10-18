@@ -12,7 +12,10 @@ function suggest(entries: Entry[], text: string): Entry[] {
   if (!t.trim()) return []
   return entries
     .map((e) => {
-      const words = e.name.toLowerCase().split(/[\s-]+/).filter((w) => w.length > 2)
+      const words = e.name
+        .toLowerCase()
+        .split(/[\s-]+/)
+        .filter((w) => w.length > 2)
       const hits = words.filter((w) => t.includes(w)).length
       return { e, score: t.includes(e.name.toLowerCase()) ? 10 : hits / words.length }
     })
@@ -23,7 +26,7 @@ function suggest(entries: Entry[], text: string): Entry[] {
 }
 
 export function Capture({ url: url0, title: title0, inboxId }: { url?: string; title?: string; inboxId?: string }) {
-  const { entries, inbox, saveEntry, addInbox, removeInbox, notify, go, replace } = useStore()
+  const { entries, inbox, saveEntry, removeInbox, notify, go, replace } = useStore()
   const [url, setUrl] = useState(url0 ?? '')
   const [title, setTitle] = useState(title0 ?? '')
   const [thumb, setThumb] = useState<string>()
@@ -184,23 +187,7 @@ export function Capture({ url: url0, title: title0, inboxId }: { url?: string; t
             )}
           </section>
 
-          <div className="row-2">
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={async () => {
-                if (inboxId) {
-                  notify('Still in your inbox')
-                  replace({ name: 'capture' })
-                  return
-                }
-                await addInbox(url, title || undefined)
-                notify('Saved to inbox')
-                reset()
-              }}
-            >
-              Sort later
-            </button>
+          <div className="save-one">
             <button type="button" className="btn primary" disabled={!target} onClick={() => target && attach(target)}>
               Save
             </button>
@@ -208,44 +195,45 @@ export function Capture({ url: url0, title: title0, inboxId }: { url?: string; t
         </>
       )}
 
-      <section className="block">
-        <div className="section-head">
-          <h2>Inbox</h2>
-          {inbox.length > 0 && (
-            <button type="button" className="link-btn" onClick={() => setClearAll(true)}>
-              Clear all
-            </button>
-          )}
-        </div>
-        {inbox.length ? (
-          <ul className="list compact">
-            {inbox.map((i) => (
-              <li key={i.id} className="inbox-row">
-                <button type="button" className="list-row" onClick={() => go({ name: 'capture', url: i.url, title: i.title, inboxId: i.id })}>
-                  <span className="list-main">
-                    <span className="list-name clamp">{i.title || i.url}</span>
-                    <span className="list-sub">
-                      {platformOf(i.url)} · {ago(i.createdAt)}
+      {/* The inbox is retired; links saved there before stay listed until they're sorted or deleted. */}
+      {inbox.length > 0 && (
+        <section className="block">
+          <div className="section-head">
+            <h2>Unsorted links</h2>
+            {inbox.length > 0 && (
+              <button type="button" className="link-btn" onClick={() => setClearAll(true)}>
+                Clear all
+              </button>
+            )}
+          </div>
+          {inbox.length ? (
+            <ul className="list compact">
+              {inbox.map((i) => (
+                <li key={i.id} className="inbox-row">
+                  <button type="button" className="list-row" onClick={() => go({ name: 'capture', url: i.url, title: i.title, inboxId: i.id })}>
+                    <span className="list-main">
+                      <span className="list-name clamp">{i.title || i.url}</span>
+                      <span className="list-sub">
+                        {platformOf(i.url)} · {ago(i.createdAt)}
+                      </span>
                     </span>
-                  </span>
-                  <span className="link-btn">Sort</span>
-                </button>
-                <button type="button" className="icon-btn" aria-label="Delete from inbox" onClick={() => removeInbox(i.id)}>
-                  <Icon name="trash" size={18} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted">Links you save with "Sort later" or from the share sheet land here.</p>
-        )}
-      </section>
+                    <span className="link-btn">Sort</span>
+                  </button>
+                  <button type="button" className="icon-btn" aria-label="Delete link" onClick={() => removeInbox(i.id)}>
+                    <Icon name="trash" size={18} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      )}
 
       <Confirm
         open={clearAll}
-        title="Clear the inbox?"
+        title="Delete all unsorted links?"
         body={`${inbox.length} unsorted links will be deleted.`}
-        action="Clear inbox"
+        action="Delete all"
         danger
         onClose={() => setClearAll(false)}
         onConfirm={async () => {

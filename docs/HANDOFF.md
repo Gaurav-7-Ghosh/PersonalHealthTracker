@@ -52,6 +52,9 @@ See [CHANGELOG.md](../CHANGELOG.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [FLO
 - Bookmarks: a bookmark button on the exercise page and in sessions, a Bookmarks screen from Today grouped by section, a Bookmarked filter in the library, and markers in lists.
 - Named lists: the bookmark button opens "Save to", where an exercise can go into your own lists. Lists can be created, renamed and deleted, and appear on the Bookmarks screen, as library filter chips, and as tags on the exercise page.
 - Sync between devices through Supabase (optional, free tier). See [SYNC.md](SYNC.md). Gaurav creates the Supabase project himself and signs in on each device.
+- Share a workout as a PNG (WhatsApp via the share sheet, or download), from any finished session.
+- Inbox retired at Gaurav's request: links are always saved to an exercise; old inbox links show as Unsorted links until handled.
+- Fix: the Home Screen app starts below the status bar and Dynamic Island.
 - Fix: sheets now open above the tab bar on every screen.
 - Release these as 0.2.0 when ready (see Releases in the README).
 

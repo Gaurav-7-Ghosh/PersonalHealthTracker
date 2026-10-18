@@ -144,3 +144,31 @@ export function BodyMap({
     </svg>
   )
 }
+
+/** Draws one side of the figure onto a canvas (for the shareable workout image). level: 1 primary, 0.5 secondary. */
+export function drawBody(g: CanvasRenderingContext2D, side: Side, level: Map<string, number>, colors: { base: string; muted: string; accent: string }) {
+  g.save()
+  g.fillStyle = colors.base
+  g.beginPath()
+  g.arc(100, 26, 17, 0, Math.PI * 2)
+  g.fill()
+  g.fill(new Path2D(SILHOUETTE))
+  for (const z of ZONES[side]) {
+    const v = level.get(z.muscle) ?? 0
+    const p = new Path2D(z.d)
+    for (const mirrored of [false, true]) {
+      g.save()
+      if (mirrored) g.setTransform(g.getTransform().translate(200, 0).scale(-1, 1))
+      g.globalAlpha = v ? 0.35 + 0.55 * v : 0.22
+      g.fillStyle = v ? colors.accent : colors.muted
+      g.fill(p)
+      g.globalAlpha = v ? 1 : 0.45
+      g.strokeStyle = v ? colors.accent : colors.muted
+      g.lineWidth = 0.8
+      g.lineJoin = 'round'
+      g.stroke(p)
+      g.restore()
+    }
+  }
+  g.restore()
+}

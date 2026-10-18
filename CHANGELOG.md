@@ -5,6 +5,8 @@
 - Bookmarks: bookmark any exercise from its page or during a session. Bookmarks are listed by section (Strength, Mobility, Stretches, ...) from Today, and the library has a Bookmarked filter.
 - Named lists: save exercises into your own lists (for example "Morning mobility") from the bookmark button. You can rename and delete lists, they appear on the Bookmarks screen and as library filters, and they show as tags on the exercise page.
 - Sync between devices (optional): sign in from Settings with your own free Supabase project, and exercises, form cards with photos, links, bookmarks, lists, history and settings stay the same on your phone and Mac. It still works offline and syncs when there's signal. Setup in docs/SYNC.md.
+- Share a workout as an image: Share workout on any finished session makes a PNG with the date, totals, a front and back body figure with the muscles worked, and every exercise with its sets. Share it straight to WhatsApp or Messages from the share sheet, or download it.
+- Inbox removed: Today no longer has an Inbox button, and Save a link always files the link under an exercise. Links already in the inbox stay listed as Unsorted links on Save a link until you sort or delete them.
 - Fix: bottom sheets no longer open behind the tab bar.
 - Fix: on iPhones with a Dynamic Island or notch, the Home Screen app no longer hides the top of each screen (the date, titles and the workout header) under the status bar.
 

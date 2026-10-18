@@ -31,6 +31,7 @@ const PATHS: Record<string, string> = {
   body: 'M12 6.7a2.2 2.2 0 100-4.4 2.2 2.2 0 000 4.4zM5 9h14M12 9v6m0 0l-3.5 6M12 15l3.5 6',
   park: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+  share: 'M12 15V4M8 8l4-4 4 4M6 11H5v9h14v-9h-1',
   upload: 'M12 20V9M7 14l5-5 5 5M5 4h14',
 }
 

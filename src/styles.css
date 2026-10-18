@@ -1813,3 +1813,25 @@ p.warn {
   color: var(--warn-ink);
   margin: 0;
 }
+.save-one {
+  display: grid;
+}
+.share-preview {
+  max-height: 58vh;
+  overflow-y: auto;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+.share-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.share-preview .photo-ph {
+  aspect-ratio: 9 / 14;
+}
+.share-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
