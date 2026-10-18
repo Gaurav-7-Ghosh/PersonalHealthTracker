@@ -631,7 +631,7 @@ textarea {
   background: var(--surface);
 }
 .thumb {
-  width: 56px;
+  width: 72px;
   height: 56px;
   border-radius: 10px;
   object-fit: cover;
@@ -1377,33 +1377,73 @@ textarea {
 .bodymap-wrap {
   display: flex;
   justify-content: center;
-  padding: 8px 0;
+  gap: 8px;
+  padding: 10px 0 6px;
   border-radius: 18px;
   background: var(--surface);
   border: 1px solid var(--line);
 }
 .bodymap {
-  width: min(62vw, 240px);
+  width: min(58vw, 220px);
   max-width: 100%;
   height: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.bodymap.half {
+  width: min(40vw, 170px);
+}
+.bodymap-cap {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
 }
 .body-base {
   fill: var(--raised);
   stroke: var(--line);
-}
-.zone {
-  fill: var(--raised);
-  stroke: var(--muted);
-  stroke-opacity: 0.5;
   stroke-width: 1;
-  cursor: pointer;
-  transition: fill 0.12s;
 }
-.zone:hover,
-.zone.on,
-.zone:active {
+.zone path {
+  fill: var(--muted);
+  fill-opacity: 0.22;
+  stroke: var(--muted);
+  stroke-opacity: 0.45;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+  transition: fill 0.12s, fill-opacity 0.12s;
+}
+.zone.tap {
+  cursor: pointer;
+  outline: none;
+}
+.zone.tap:hover path,
+.zone.tap:focus-visible path,
+.zone.tap:active path,
+.zone.on path {
   fill: var(--accent);
-  fill-opacity: 0.55;
+  fill-opacity: 0.8;
+  stroke: var(--accent);
+}
+.zone.off path {
+  fill-opacity: 0.08;
+  stroke-opacity: 0.2;
+}
+.muscle-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.muscle-head h1 {
+  flex: 1;
+  min-width: 0;
+}
+.bodymap.mini {
+  width: 72px;
+  flex: none;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
 }
 .region-grid {
   display: grid;
@@ -1430,4 +1470,8 @@ textarea {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.center {
+  text-align: center;
 }

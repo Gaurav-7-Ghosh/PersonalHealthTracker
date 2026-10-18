@@ -1,10 +1,10 @@
 // Start workout flow: body map → muscle → exercises filtered by equipment → log.
 import { useMemo, useState } from 'react'
-import { BodyMap } from '../components/BodyMap'
+import { BodyMap, regionMuscles, sideOf, sidesFor, type Side } from '../components/BodyMap'
 import { Icon } from '../components/Icon'
 import { Chip, Empty, Thumb, TopBar } from '../components/ui'
 import { useStore } from '../store'
-import { KINDS, REGIONS } from '../taxonomy'
+import { KINDS, REGIONS, regionsOfMuscle } from '../taxonomy'
 import type { Entry, Kind } from '../types'
 import { ago } from '../util'
 import { fmtSet } from './EntryView'
@@ -13,10 +13,10 @@ const inRegion = (e: Entry, region: string) => e.regions.includes(region)
 const worksMuscle = (e: Entry, m: string) => e.muscles.some((x) => x.name === m && x.role !== 'stabiliser')
 
 export function BodyPicker() {
-  const { entries, active } = useStore()
-  const { go } = useStore()
-  const [side, setSide] = useState<'front' | 'back'>('front')
+  const { entries, active, go } = useStore()
+  const [side, setSide] = useState<Side>('front')
   const count = (r: string) => entries.filter((e) => inRegion(e, r)).length
+  const pick = (muscle: string) => go({ name: 'exercises', region: regionsOfMuscle(muscle)[0] ?? 'Full body', muscle })
 
   return (
     <div className="screen">
@@ -31,8 +31,10 @@ export function BodyPicker() {
         </button>
       </div>
       <div className="bodymap-wrap">
-        <BodyMap side={side} onPick={(region) => go({ name: 'region', region })} />
+        <BodyMap side={side} onPick={pick} />
       </div>
+      <p className="muted small center">Tap a muscle to see its exercises.</p>
+      <h2>Or browse by body part</h2>
       <div className="region-grid">
         {REGIONS.map((r) => (
           <button key={r.name} type="button" className="region-btn" onClick={() => go({ name: 'region', region: r.name })}>
@@ -47,12 +49,24 @@ export function BodyPicker() {
 
 export function RegionScreen({ region }: { region: string }) {
   const { entries, go } = useStore()
-  const muscles = REGIONS.find((r) => r.name === region)?.muscles ?? []
+  const muscles = regionMuscles(region)
   const all = entries.filter((e) => inRegion(e, region))
+  const sides = sidesFor(muscles)
+  const pick = (m: string) => go({ name: 'exercises', region, muscle: m })
   return (
     <div className="screen">
       <TopBar sub="Start workout" title={region} />
       <h1>{region}</h1>
+      {sides.length > 0 && (
+        <div className="bodymap-wrap">
+          {sides.map((sd) => (
+            <div key={sd} className="bodymap-cap">
+              <BodyMap side={sd} only={muscles} highlight={muscles} onPick={pick} className={sides.length > 1 ? 'bodymap half' : 'bodymap'} />
+              {sides.length > 1 && <span className="muted small">{sd === 'front' ? 'Front' : 'Back'}</span>}
+            </div>
+          ))}
+        </div>
+      )}
       <ul className="list">
         {muscles.map((m) => {
           const n = entries.filter((e) => worksMuscle(e, m)).length
@@ -105,6 +119,7 @@ export function ExerciseList({ region, muscle }: { region: string; muscle?: stri
     .filter((x) => (kind === 'all' || x.e.kind === kind) && (!equipment.length || x.e.equipment.some((q) => equipment.includes(q))))
     .sort((a, b) => Number(b.primary) - Number(a.primary) || (b.last?.session.startedAt ?? 0) - (a.last?.session.startedAt ?? 0) || a.e.name.localeCompare(b.e.name))
 
+  const mapSide: Side | undefined = muscle ? (sidesFor([muscle]).length ? sideOf(muscle) : undefined) : sidesFor(regionMuscles(region))[0]
   const create = () => go({ name: 'edit', kind: kind === 'all' ? 'strength' : kind, region, muscle, equipment: equipment[0], returnBack: true })
 
   return (
@@ -118,7 +133,10 @@ export function ExerciseList({ region, muscle }: { region: string; muscle?: stri
           </button>
         }
       />
-      <h1>{muscle ?? region}</h1>
+      <div className="muscle-head">
+        <h1>{muscle ?? region}</h1>
+        {mapSide && <BodyMap side={mapSide} highlight={muscle ? [muscle] : regionMuscles(region)} className="bodymap mini" label={`${muscle ?? region} highlighted`} />}
+      </div>
 
       {equipOptions.length > 1 && (
         <div className="field">
