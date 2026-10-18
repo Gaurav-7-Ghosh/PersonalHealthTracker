@@ -1,6 +1,6 @@
 # Handoff and project context
 
-Last updated 2026-10-18, at version 0.1.0. This file carries the context between working sessions, so a new session can pick up from the repo alone.
+Last updated 2026-10-18 (0.1.0 plus bookmarks). This file carries the context between working sessions, so a new session can pick up from the repo alone.
 
 ## What this is
 
@@ -28,6 +28,7 @@ Later it will add meal plans and macros, and Garmin data. It's a senior develope
 | Form cards hold screenshots as-is (OneNote, video stills) with headings, notes, drawings and crop | His OneNote pages are annotated screenshots; he uses them as a refresher, not to learn |
 | Links are key-value: label (Proper form, What to focus on, ...) to URL | How he organises saved YouTube and Instagram videos |
 | Typed weights and reps, with a Last time card | Faster than tapping + and − |
+| Bookmarks on any exercise, listed by section (kind) | To keep the drills he finds (with notes and links) easy to get back to |
 | Instagram and TikTok get a manual cover image | They don't share thumbnails without a developer account |
 | GitHub Pages, public repo | Free hosting; data never leaves the phone, only the code is public |
 | No router or state library; one `store.tsx` | Small app; fewer dependencies to keep offline |
@@ -44,6 +45,10 @@ See [CHANGELOG.md](../CHANGELOG.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [FLO
 - the Home HIIT timer
 - history
 - backup and restore
+
+## Since 0.1.0 (on `main`, not yet released)
+
+- Bookmarks: a bookmark button on the exercise page and in sessions, a Bookmarks screen from Today grouped by section, a Bookmarked filter in the library, and markers in lists. Custom named lists (for example "Morning mobility") are a possible next step if sections aren't enough.
 
 ## Deploy setup
 

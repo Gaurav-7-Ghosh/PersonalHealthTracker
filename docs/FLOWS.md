@@ -96,7 +96,21 @@ flowchart LR
 - **Remove untouched starter entries:** keeps anything edited (`updatedAt !== createdAt`), anything used in a session, and anything in a routine.
 - **Footer:** shows the version.
 
-## 8. Offline and updates
+## 8. Bookmarks
+
+```mermaid
+flowchart LR
+  V["EntryView or Session<br/>bookmark button"] -->|"bookmarkedAt = now"| E[("entry")]
+  T["Today<br/>Bookmarks"] --> B["Bookmarks screen<br/>tabs by section (kind)"] --> V
+  L["Library<br/>Bookmarked chip"] --> V
+```
+
+- `BookmarkButton` in `components/ui.tsx` sets or clears `entry.bookmarkedAt`. It also bumps `updatedAt`, so a bookmarked starter entry is kept by "Remove untouched starter entries".
+- **Bookmarks screen:** `screens/Bookmarks.tsx` groups bookmarks by section: Strength, Mobility, Stretches, Warm-ups and HIIT, newest first. When there's more than one section, tabs show a count for each.
+- **Library:** the "Bookmarked" chip limits the list to bookmarks.
+- **Exercise lists:** bookmarked exercises sort right after primary-muscle ones and show a small bookmark mark.
+
+## 9. Offline and updates
 
 - **Service worker** (`public/sw.js`, cache `workout-v2`):
   - The page is network first, so a new deploy arrives the next time the app opens with signal.

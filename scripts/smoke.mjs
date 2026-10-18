@@ -264,6 +264,26 @@ try {
     await page.getByRole('button', { name: 'Discard session' }).click()
   })
 
+  await step('bookmark a mobility drill and find it by section', async () => {
+    await page.getByRole('navigation').getByRole('button', { name: 'Library' }).click()
+    await page.getByRole('tab', { name: 'All' }).click()
+    await page.getByLabel('Search library').fill('open-book')
+    await page.getByText('Open-book thoracic rotation').first().click()
+    await page.getByRole('button', { name: 'Bookmark', exact: true }).click()
+    await page.getByText('Bookmarked in Mobility').waitFor()
+    await page.getByRole('button', { name: 'Remove bookmark' }).waitFor()
+    await page.getByRole('navigation').getByRole('button', { name: 'Today' }).click()
+    await page.getByRole('button', { name: /Bookmarks/ }).click()
+    await page.getByRole('heading', { name: 'Bookmarks', level: 1 }).waitFor()
+    await page.getByRole('region', { name: 'Mobility' }).getByText('Open-book thoracic rotation').waitFor()
+    await shot('21-bookmarks')
+    await page.getByRole('navigation').getByRole('button', { name: 'Library' }).click()
+    await page.getByLabel('Search library').fill('')
+    await page.getByRole('button', { name: 'Bookmarked only' }).click()
+    await page.getByText('1 entry').waitFor()
+    await page.getByRole('button', { name: 'Bookmarked only' }).click()
+  })
+
   await step('hiit timer runs', async () => {
     await page.getByRole('navigation').getByRole('button', { name: 'Today' }).click()
     await page.getByRole('button', { name: 'Home HIIT' }).click()

@@ -60,6 +60,8 @@ export interface Entry {
   photos: PhotoRef[]
   links: LinkRef[]
   notes: NoteRef[]
+  /** Set when bookmarked; bookmarks are listed by section (kind), newest first. */
+  bookmarkedAt?: number
   pinnedSwaps: string[]
   sample?: boolean
   createdAt: number
@@ -134,6 +136,7 @@ export type Route =
   | { name: 'region'; region: string }
   | { name: 'exercises'; region: string; muscle?: string }
   | { name: 'library' }
+  | { name: 'bookmarks'; kind?: Kind }
   | { name: 'entry'; id: string }
   | { name: 'formEdit'; id: string }
   | { name: 'edit'; id?: string; kind?: Kind; region?: string; muscle?: string; equipment?: string; returnBack?: boolean }

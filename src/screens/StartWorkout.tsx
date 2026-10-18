@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { BodyMap, regionMuscles, sideOf, sidesFor, type Side } from '../components/BodyMap'
 import { Icon } from '../components/Icon'
-import { Chip, Empty, Thumb, TopBar } from '../components/ui'
+import { BookmarkMark, Chip, Empty, Thumb, TopBar } from '../components/ui'
 import { useStore } from '../store'
 import { KINDS, REGIONS, regionsOfMuscle } from '../taxonomy'
 import type { Entry, Kind } from '../types'
@@ -117,7 +117,7 @@ export function ExerciseList({ region, muscle }: { region: string; muscle?: stri
   const kindOptions = KINDS.filter((k) => base.some((x) => x.e.kind === k.id))
   const list = base
     .filter((x) => (kind === 'all' || x.e.kind === kind) && (!equipment.length || x.e.equipment.some((q) => equipment.includes(q))))
-    .sort((a, b) => Number(b.primary) - Number(a.primary) || (b.last?.session.startedAt ?? 0) - (a.last?.session.startedAt ?? 0) || a.e.name.localeCompare(b.e.name))
+    .sort((a, b) => Number(b.primary) - Number(a.primary) || Number(!!b.e.bookmarkedAt) - Number(!!a.e.bookmarkedAt) || (b.last?.session.startedAt ?? 0) - (a.last?.session.startedAt ?? 0) || a.e.name.localeCompare(b.e.name))
 
   const mapSide: Side | undefined = muscle ? (sidesFor([muscle]).length ? sideOf(muscle) : undefined) : sidesFor(regionMuscles(region))[0]
   const create = () => go({ name: 'edit', kind: kind === 'all' ? 'strength' : kind, region, muscle, equipment: equipment[0], returnBack: true })
@@ -173,7 +173,9 @@ export function ExerciseList({ region, muscle }: { region: string; muscle?: stri
               <button type="button" className="list-row" onClick={() => addToSession(e)} aria-label={`${active ? 'Add' : 'Start with'} ${e.name}`}>
                 <Thumb entry={e} />
                 <span className="list-main">
-                  <span className="list-name">{e.name}</span>
+                  <span className="list-name">
+                    {e.name} <BookmarkMark entry={e} />
+                  </span>
                   <span className="list-sub">{e.equipment.join(', ') || 'Bodyweight'}</span>
                   <span className="list-meta">{last ? `${ago(last.session.startedAt)} · ${last.item.sets.map((s) => fmtSet(s, e)).join(', ')}` : 'Not logged yet'}</span>
                 </span>

@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../components/Icon'
-import { Chip, Empty, Thumb } from '../components/ui'
+import { BookmarkMark, Chip, Empty, Thumb } from '../components/ui'
 import { useStore } from '../store'
 import { KINDS, REGIONS, kindLabel } from '../taxonomy'
 import type { Kind } from '../types'
 import { ago } from '../util'
 
 // Kept outside the component so filters survive opening an entry and coming back.
-const memo = { q: '', kind: 'all' as Kind | 'all', region: '', muscle: '' }
+const memo = { q: '', kind: 'all' as Kind | 'all', region: '', muscle: '', marked: false }
 
 export function Library() {
   const { entries, go, history } = useStore()
@@ -15,7 +15,8 @@ export function Library() {
   const [kind, setKind] = useState(memo.kind)
   const [region, setRegion] = useState(memo.region)
   const [muscle, setMuscle] = useState(memo.muscle)
-  Object.assign(memo, { q, kind, region, muscle })
+  const [marked, setMarked] = useState(memo.marked)
+  Object.assign(memo, { q, kind, region, muscle, marked })
 
   const muscles = REGIONS.find((r) => r.name === region)?.muscles ?? []
   const list = useMemo(() => {
@@ -23,6 +24,7 @@ export function Library() {
     return entries.filter(
       (e) =>
         (kind === 'all' || e.kind === kind) &&
+        (!marked || !!e.bookmarkedAt) &&
         (!region || e.regions.includes(region) || e.muscles.some((m) => REGIONS.find((r) => r.name === region)?.muscles.includes(m.name) && m.role === 'primary')) &&
         (!muscle || e.muscles.some((m) => m.name === muscle)) &&
         (!needle ||
@@ -31,7 +33,7 @@ export function Library() {
           e.links.some((l) => l.label.toLowerCase().includes(needle) || l.title?.toLowerCase().includes(needle)) ||
           e.notes.some((n) => n.body.toLowerCase().includes(needle))),
     )
-  }, [entries, q, kind, region, muscle])
+  }, [entries, q, kind, region, muscle, marked])
 
   return (
     <div className="screen">
@@ -64,6 +66,9 @@ export function Library() {
       </div>
 
       <div className="chips scroll" aria-label="Body region">
+        <Chip on={marked} onClick={() => setMarked(!marked)} label="Bookmarked only">
+          <Icon name="bookmark" size={14} /> Bookmarked
+        </Chip>
         {REGIONS.map((r) => (
           <Chip
             key={r.name}
@@ -99,7 +104,9 @@ export function Library() {
                 <button type="button" className="list-row" onClick={() => go({ name: 'entry', id: e.id })}>
                   <Thumb entry={e} />
                   <span className="list-main">
-                    <span className="list-name">{e.name}</span>
+                    <span className="list-name">
+                      {e.name} <BookmarkMark entry={e} />
+                    </span>
                     <span className="list-sub">
                       {kindLabel(e.kind)} · {e.equipment.slice(0, 2).join(', ') || 'Bodyweight'}
                     </span>

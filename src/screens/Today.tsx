@@ -3,7 +3,8 @@ import { useStore } from '../store'
 import { fmtDate, fmtDuration } from '../util'
 
 export function Today() {
-  const { active, routines, sessions, inbox, go } = useStore()
+  const { active, routines, sessions, inbox, entries, go } = useStore()
+  const bookmarks = entries.filter((e) => e.bookmarkedAt).length
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
   const recent = sessions.slice(0, 3)
 
@@ -33,7 +34,7 @@ export function Today() {
         </button>
       )}
 
-      <div className="quick three">
+      <div className="quick">
         <button type="button" className="quick-btn" onClick={() => go({ name: 'hiit' })}>
           <Icon name="flame" size={22} />
           Home HIIT
@@ -46,6 +47,11 @@ export function Today() {
           <Icon name="inbox" size={22} />
           Inbox
           {inbox.length > 0 && <span className="badge">{inbox.length}</span>}
+        </button>
+        <button type="button" className="quick-btn" onClick={() => go({ name: 'bookmarks' })}>
+          <Icon name="bookmark" size={22} />
+          Bookmarks
+          {bookmarks > 0 && <span className="badge soft">{bookmarks}</span>}
         </button>
       </div>
 

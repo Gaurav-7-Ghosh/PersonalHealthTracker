@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Bookmarks: bookmark any exercise from its page or during a session. Bookmarks are listed by section (Strength, Mobility, Stretches, ...) from Today, and the library has a Bookmarked filter.
+
 ## 0.1.0 (2026-10-18)
 
 First version: SRS sections 2.1 to 2.5, workout library and session logging.

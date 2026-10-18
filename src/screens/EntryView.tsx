@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { FormCard } from '../components/FormCard'
 import { LinkThumb } from '../components/LinkThumb'
 import { Icon } from '../components/Icon'
-import { Empty, EntryPicker, RenameSheet, Sheet, Tag, TopBar } from '../components/ui'
+import { BookmarkButton, Empty, EntryPicker, RenameSheet, Sheet, Tag, TopBar } from '../components/ui'
 import { bestSet, useStore } from '../store'
 import { rankSwaps, recentEntryIds } from '../swap'
 import { kindLabel, platformOf } from '../taxonomy'
@@ -40,9 +40,12 @@ export function EntryView({ id }: { id: string }) {
       <TopBar
         sub={kindLabel(e.kind)}
         right={
-          <button type="button" className="icon-btn" aria-label="Edit" onClick={() => go({ name: 'edit', id: e.id })}>
-            <Icon name="edit" />
-          </button>
+          <>
+            <BookmarkButton entry={e} />
+            <button type="button" className="icon-btn" aria-label="Edit" onClick={() => go({ name: 'edit', id: e.id })}>
+              <Icon name="edit" />
+            </button>
+          </>
         }
       />
       <div className="title-row">

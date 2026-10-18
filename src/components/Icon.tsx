@@ -27,6 +27,7 @@ const PATHS: Record<string, string> = {
   down: 'M6 9l6 6 6-6',
   pin: 'M9 4h6l-1 6 3 3H7l3-3zM12 13v7',
   skip: 'M6 5l9 7-9 7zM18 5v14',
+  bookmark: 'M6 4h12v17l-6-4.5L6 21z',
   body: 'M12 6.7a2.2 2.2 0 100-4.4 2.2 2.2 0 000 4.4zM5 9h14M12 9v6m0 0l-3.5 6M12 15l3.5 6',
   park: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',

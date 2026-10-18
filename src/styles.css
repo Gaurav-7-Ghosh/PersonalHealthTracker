@@ -1759,3 +1759,21 @@ textarea {
   gap: 10px;
   flex-wrap: wrap;
 }
+
+.icon-btn.bm.on svg {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.bm-mark {
+  display: inline-flex;
+  vertical-align: -1px;
+  color: var(--accent-ink);
+}
+.bm-mark svg {
+  fill: currentColor;
+}
+.badge.soft {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+}

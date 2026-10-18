@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FormCard } from '../components/FormCard'
 import { Icon } from '../components/Icon'
-import { Chip, Confirm, Empty, RenameSheet, Sheet, Stepper } from '../components/ui'
+import { BookmarkButton, Chip, Confirm, Empty, RenameSheet, Sheet, Stepper } from '../components/ui'
 import { useStore } from '../store'
 import { rankSwaps, recentEntryIds } from '../swap'
 import type { Entry, SessionItem, SetLog } from '../types'
@@ -162,6 +162,7 @@ export function SessionScreen() {
           <div className="ex-head">
             <div className="title-row">
               <h1>{e.name}</h1>
+              <BookmarkButton entry={e} />
               <button type="button" className="icon-btn" aria-label="Rename" onClick={() => setRenaming(true)}>
                 <Icon name="edit" size={18} />
               </button>

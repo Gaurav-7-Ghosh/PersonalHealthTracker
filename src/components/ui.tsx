@@ -322,3 +322,31 @@ export function EntryPicker({
     </Sheet>
   )
 }
+
+/** Toggle an exercise's bookmark. */
+export function BookmarkButton({ entry }: { entry: Entry }) {
+  const { saveEntry, notify } = useStore()
+  const on = !!entry.bookmarkedAt
+  return (
+    <button
+      type="button"
+      className={on ? 'icon-btn bm on' : 'icon-btn bm'}
+      aria-pressed={on}
+      aria-label={on ? 'Remove bookmark' : 'Bookmark'}
+      onClick={async () => {
+        await saveEntry({ ...entry, bookmarkedAt: on ? undefined : Date.now(), updatedAt: Date.now() })
+        notify(on ? 'Bookmark removed' : `Bookmarked in ${kindLabel(entry.kind)}`)
+      }}
+    >
+      <Icon name="bookmark" />
+    </button>
+  )
+}
+
+/** Small marker shown on list rows for bookmarked exercises. */
+export const BookmarkMark = ({ entry }: { entry: Entry }) =>
+  entry.bookmarkedAt ? (
+    <span className="bm-mark" role="img" aria-label="Bookmarked">
+      <Icon name="bookmark" size={14} />
+    </span>
+  ) : null
