@@ -1,10 +1,10 @@
 # Personal Health Tracker
 
-A personal, offline-first workout companion that runs in the browser and installs to the iPhone Home Screen. It keeps your exercise and mobility library with form cards (key cues plus Start, Mid and End photos), your saved video links by label, routines, set logging, busy-station swaps and a home HIIT timer. Everything is stored on the device in IndexedDB; there is no server and no account.
+A personal, offline-first workout companion that runs in the browser and installs to the iPhone Home Screen. It keeps your exercise and mobility library with form cards (key cues plus Start, Mid and End photos), your saved video links by label, routines, set logging, busy-station swaps and a home HIIT timer. Everything is stored on the device in IndexedDB. Optional sync keeps the phone and Mac in step through your own free Supabase project ([setup](docs/SYNC.md)).
 
 Spec: see the SRS doc in the Workout and Lifestyle project. This version covers SRS sections 2.1 to 2.5.
 
-Docs: [Architecture](docs/ARCHITECTURE.md) · [User flows](docs/FLOWS.md) · [Handoff, decisions and open items](docs/HANDOFF.md) · [Changelog](CHANGELOG.md)
+Docs: [Architecture](docs/ARCHITECTURE.md) · [User flows](docs/FLOWS.md) · [Sync setup](docs/SYNC.md) · [Handoff, decisions and open items](docs/HANDOFF.md) · [Changelog](CHANGELOG.md)
 
 ## Run it
 

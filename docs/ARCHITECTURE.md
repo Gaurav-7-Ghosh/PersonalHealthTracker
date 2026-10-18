@@ -1,6 +1,6 @@
 # Architecture
 
-Personal Health Tracker is a single-page React app with no server. It is built into one self-contained `index.html`, cached by a service worker, and keeps all data in the browser's IndexedDB on the phone. The goals behind that shape: zero cost, works in a gym with no signal, nothing to sign in to.
+Personal Health Tracker is a single-page React app with no server of its own. It is built into one self-contained `index.html`, cached by a service worker, and keeps all data in the browser's IndexedDB on each device. The goals behind that shape: zero cost and works in a gym with no signal. Sync between devices is optional and goes through the user's own free Supabase project ([SYNC.md](SYNC.md)).
 
 ```mermaid
 flowchart LR
@@ -12,6 +12,7 @@ flowchart LR
   GH["GitHub Pages<br/>static hosting"] -->|first load / updates| SW
   YT["YouTube<br/>oEmbed + thumbnails"] -.optional, online only.-> UI
   Shortcut["Apple Shortcut<br/>share sheet"] -->|"?url=...&title=..."| UI
+  IDB <-.->|"sync.ts, optional"| SB[("Supabase<br/>records table + photos bucket")]
 ```
 
 ## Stack
@@ -35,11 +36,12 @@ src/
   main.tsx          entry: reads ?url= for share-sheet capture, registers the service worker
   App.tsx           tab bar + route switch (Screen) + which tab each route belongs to (SECTION)
   store.tsx         StoreProvider/useStore: state, navigation, persistence, seed migration, sessions
-  db.ts             IndexedDB wrapper (getAll, get, put, del, clearAll, allKeys), memory fallback
+  db.ts             IndexedDB wrapper (getAll, get, put, del, clearAll, allKeys, onChange), memory fallback
   types.ts          data model and the Route union
   taxonomy.ts       regions -> muscles, equipment, movement patterns, labels, positions
   seed.ts           ~80 starter entries (sample: true); no preset routines
   swap.ts           ranking alternatives when equipment is busy
+  sync.ts           optional Supabase sync: sign-in, outbox, pull/push, photo transfer (docs/SYNC.md)
   util.ts           ids, dates, image resize/crop, photo blob cache, YouTube helpers, beeps, wake lock
   env.d.ts          __APP_VERSION__ (injected from package.json by vite.config.ts)
   styles.css        all styles; dark-first tokens on :root, light overrides
@@ -65,7 +67,7 @@ src/
     Routines.tsx      saved routines (reachable from Today when any exist)
     Settings.tsx      timers, backup/restore, Shortcut setup, starter data, version
 public/             manifest.webmanifest, icon.svg, sw.js
-scripts/            smoke.mjs (Playwright), make-artifact.mjs (claude.ai preview build)
+scripts/            smoke.mjs (Playwright), fake-supabase.mjs (sync test server), make-artifact.mjs (claude.ai preview build)
 shims/              jsx-runtime shim used only by the preview build
 ```
 
@@ -92,7 +94,7 @@ erDiagram
 - **Session**: `items[]` of `{entryId, swappedFrom?, target, sets[]}`, `current`, and an optional `hiit` block. The running session is kept in `meta` under `active` until it is finished.
 - **Settings**: rest timers, weight step, `busyEquipment`, `seedVersion`, `lists` (your named lists: `{id, name, createdAt}`).
 
-IndexedDB stores: `entries`, `routines`, `sessions`, `inbox`, `photos` (JPEG blobs, at most 1600 px), `meta` (settings and the active session).
+IndexedDB stores: `entries`, `routines`, `sessions`, `inbox`, `photos` (JPEG blobs, at most 1600 px), `meta` (settings, the active session, and sync's `sync` state and `outbox`).
 
 ## State and navigation (`src/store.tsx`)
 
@@ -132,4 +134,5 @@ Score = 0.55 x muscle cosine + 0.25 x pattern match + 0.1 x same loading + 0.1 x
 - **Browser:** set `CHROMIUM=/path/to/chrome` to use a specific browser.
 - **Real screenshots:** set `FORM_SHOTS=<folder>` to test the form card editor with real images.
 - **YouTube thumbnails:** requests to `i.ytimg.com` are stubbed, so the test needs no internet.
+- **Sync:** `scripts/fake-supabase.mjs` serves the Supabase endpoints sync uses on port 4180, and the test syncs a second browser context with the first.
 - **CI:** GitHub Actions runs the same checks on every push and pull request.

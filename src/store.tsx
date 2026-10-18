@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import * as db from './db'
+import * as sync from './sync'
 import { SEED_ENTRIES, SEED_ROUTINES } from './seed'
 import type { Entry, InboxItem, Route, Routine, RoutineItem, Session, SessionItem, SetLog, Settings } from './types'
 import { deletePhoto, uid } from './util'
@@ -100,7 +101,7 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
   }, [])
 
   useEffect(() => {
-    reload()
+    reload().then(() => sync.init(reload))
   }, [reload])
 
   const byId = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries])

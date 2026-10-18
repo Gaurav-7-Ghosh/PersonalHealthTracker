@@ -1799,3 +1799,14 @@ textarea {
 .save-row > svg:last-child {
   color: var(--accent-ink);
 }
+
+/* Sync */
+.sync-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+p.warn {
+  color: var(--warn-ink);
+  margin: 0;
+}

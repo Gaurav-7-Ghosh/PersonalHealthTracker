@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Icon } from '../components/Icon'
 import { Confirm, Stepper } from '../components/ui'
 import * as db from '../db'
 import { useStore } from '../store'
+import * as sync from '../sync'
 import type { Entry, InboxItem, Routine, Session, Settings as SettingsT } from '../types'
-import { blobToDataUrl, dataUrlToBlob, savePhoto } from '../util'
+import { ago, blobToDataUrl, dataUrlToBlob, savePhoto } from '../util'
 
 interface Backup {
   app: 'workout-companion'
@@ -72,6 +73,7 @@ export function Settings() {
   }
 
   const restore = async (b: Backup) => {
+    await sync.signOut()
     await db.clearAll()
     for (const e of b.entries) await db.put('entries', e.id, e)
     for (const r of b.routines) await db.put('routines', r.id, r)
@@ -115,10 +117,12 @@ export function Settings() {
         )}
       </section>
 
+      <SyncSection />
+
       <section className="block">
         <h2>Backup</h2>
         <p className="muted">
-          Everything lives on this device. Save a backup to iCloud Drive every week or so, and before you clear Safari data. Photos are included.
+          Everything lives on this device, and in your Supabase project when sync is on. Save a backup to iCloud Drive every week or so, and before you clear Safari data. Photos are included.
         </p>
         <div className="row-2">
           <button type="button" className="btn primary" onClick={exportBackup}>
@@ -184,7 +188,7 @@ export function Settings() {
       <Confirm
         open={!!pending}
         title="Replace everything with this backup?"
-        body={pending ? `From ${new Date(pending.exportedAt).toLocaleString()}: ${pending.entries.length} entries, ${pending.sessions.length} sessions. What's on this device now is replaced.` : ''}
+        body={pending ? `From ${new Date(pending.exportedAt).toLocaleString()}: ${pending.entries.length} entries, ${pending.sessions.length} sessions. What's on this device now is replaced, and sync is turned off here until you sign in again.` : ''}
         action="Restore backup"
         danger
         onClose={() => setPending(null)}
@@ -213,16 +217,93 @@ export function Settings() {
       <Confirm
         open={wipe}
         title="Erase everything?"
-        body="All entries, photos, routines and history on this device are deleted. Save a backup first if you might want them."
+        body="All entries, photos, routines and history on this device are deleted, and this device is signed out of sync. Your synced copy is not touched. Save a backup first if you might want them."
         action="Erase everything"
         danger
         onClose={() => setWipe(false)}
         onConfirm={async () => {
+          await sync.signOut()
           await db.clearAll()
           await reload()
           notify('Erased. Starter data was added back.')
         }}
       />
     </div>
+  )
+}
+
+function SyncSection() {
+  const st = useSyncExternalStore(sync.subscribe, sync.getStatus)
+  const { notify } = useStore()
+  const [url, setUrl] = useState('')
+  const [key, setKey] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string>()
+
+  const signIn = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setMsg(undefined)
+    try {
+      if (!st.configured || url) sync.setConfig({ url, key })
+      await sync.signIn(email, password)
+      setPassword('')
+      notify('Signed in. Syncing.')
+    } catch (err) {
+      setMsg((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="block" aria-label="Sync">
+      <h2>Sync between devices</h2>
+      {st.signedIn ? (
+        <>
+          <p className="muted">
+            Signed in as {st.email}. {st.syncing ? 'Syncing now.' : st.lastSync ? `Last synced ${ago(st.lastSync)}.` : 'Not synced yet.'}
+            {st.pending > 0 && !st.syncing && ` ${st.pending} change${st.pending === 1 ? '' : 's'} waiting to send.`}
+          </p>
+          {st.error && <p className="warn small">{st.error}</p>}
+          <div className="row-2">
+            <button type="button" className="btn primary" disabled={st.syncing} onClick={() => sync.syncNow()}>
+              Sync now
+            </button>
+            <button type="button" className="btn ghost" onClick={() => sync.signOut().then(() => notify('Signed out. Your data stays on this device.'))}>
+              Sign out
+            </button>
+          </div>
+          <p className="muted small">Changes sync on their own whenever there's signal. A workout in progress stays on the device it's on until you finish it.</p>
+        </>
+      ) : (
+        <form onSubmit={signIn} className="sync-form">
+          <p className="muted">Keep your exercises, form cards, photos and history the same on your phone and Mac, using your own free Supabase project. Everything still works offline.</p>
+          {st.error && <p className="warn small">{st.error}</p>}
+          <div className="field">
+            <label htmlFor="sb-url">Supabase project URL</label>
+            <input id="sb-url" type="url" inputMode="url" autoCapitalize="off" autoCorrect="off" placeholder={st.configured ? 'Saved' : 'https://xxxx.supabase.co'} value={url} onChange={(e) => setUrl(e.target.value)} required={!st.configured} />
+          </div>
+          <div className="field">
+            <label htmlFor="sb-key">Publishable key</label>
+            <input id="sb-key" autoCapitalize="off" autoCorrect="off" spellCheck={false} placeholder={st.configured ? 'Saved' : 'sb_publishable_... or anon key'} value={key} onChange={(e) => setKey(e.target.value)} required={!st.configured} />
+          </div>
+          <div className="field">
+            <label htmlFor="sb-email">Email</label>
+            <input id="sb-email" type="email" autoComplete="username" autoCapitalize="off" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="field">
+            <label htmlFor="sb-pass">Password</label>
+            <input id="sb-pass" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+          {msg && <p className="warn small">{msg}</p>}
+          <button type="submit" className="btn primary" disabled={busy}>
+            {busy ? 'Signing in...' : 'Sign in and sync'}
+          </button>
+        </form>
+      )}
+    </section>
   )
 }

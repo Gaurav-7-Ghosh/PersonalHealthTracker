@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { KINDS, kindLabel } from '../taxonomy'
 import type { Entry, Kind } from '../types'
-import { photoUrl, uid } from '../util'
+import { photoUrl, uid, whenPhotoArrives } from '../util'
 import { Icon } from './Icon'
 
 export function TopBar({ title, sub, right, onBack }: { title?: string; sub?: string; right?: React.ReactNode; onBack?: () => void }) {
@@ -219,9 +219,12 @@ export function Photo({ id, alt, className }: { id: string; alt: string; classNa
   const [src, setSrc] = useState<string>()
   useEffect(() => {
     let live = true
-    photoUrl(id).then((u) => live && setSrc(u))
+    const load = () => photoUrl(id).then((u) => live && setSrc(u))
+    load()
+    const off = whenPhotoArrives(id, load)
     return () => {
       live = false
+      off()
     }
   }, [id])
   return src ? <img className={className} src={src} alt={alt} /> : <div className={(className ?? '') + ' photo-ph'} />

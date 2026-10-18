@@ -4,11 +4,13 @@ import { spawn } from 'node:child_process'
 import { mkdirSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
+import { startFakeSupabase } from './fake-supabase.mjs'
 
 const PORT = 4179
 const shots = process.env.SHOTS ?? 'screenshots'
 mkdirSync(shots, { recursive: true })
 
+const fake = startFakeSupabase(4180)
 const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' })
 await new Promise((r) => setTimeout(r, 2500))
 
@@ -321,6 +323,67 @@ try {
     await page.emulateMedia({ colorScheme: 'dark' })
   })
 
+  await step('sync between two devices', async () => {
+    const signIn = async (p, password = 'secret-pass') => {
+      await p.getByRole('navigation').getByRole('button', { name: 'Settings' }).click()
+      const box = p.getByRole('region', { name: 'Sync' })
+      await box.getByLabel('Supabase project URL').fill('http://localhost:4180')
+      await box.getByLabel('Publishable key').fill('sb_publishable_test')
+      await box.getByLabel('Email').fill('me@example.com')
+      await box.getByLabel('Password').fill(password)
+      await box.getByRole('button', { name: 'Sign in and sync' }).click()
+      return box
+    }
+    // Mac: sends everything it has.
+    const mac = await signIn(page)
+    await mac.getByText(/Last synced/).waitFor()
+    await shot('24-sync-signed-in')
+    if (!fake.objects.size) throw new Error('no photos uploaded')
+
+    // Phone: a fresh device signs in and gets it all, photos included.
+    const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, colorScheme: 'dark', hasTouch: true })
+    await ctx2.route('https://i.ytimg.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: GREY }))
+    const phone = await ctx2.newPage()
+    phone.on('pageerror', (e) => errors.push('phone: ' + e.message))
+    await phone.goto(`http://localhost:${PORT}/`)
+    let box = await signIn(phone, 'wrong')
+    await box.getByText('Invalid login credentials').waitFor()
+    await box.getByLabel('Password').fill('secret-pass')
+    await box.getByRole('button', { name: 'Sign in and sync' }).click()
+    await box.getByText(/Last synced/).waitFor()
+    await shot('25-sync-sign-in')
+    await phone.getByRole('navigation').getByRole('button', { name: 'History' }).click()
+    await phone.getByText('Chest + Back').first().waitFor()
+    await phone.getByRole('navigation').getByRole('button', { name: 'Today' }).click()
+    await phone.getByRole('button', { name: /Bookmarks/ }).click()
+    await phone.getByRole('region', { name: 'Your lists' }).getByRole('button', { name: /Morning mobility 1 exercise/ }).waitFor()
+    await phone.getByRole('navigation').getByRole('button', { name: 'Library' }).click()
+    await phone.getByLabel('Search library').fill('incline bench 30')
+    await phone.getByText('Incline bench 30 degrees').first().waitFor()
+    await phone.getByLabel('Search library').fill('bent-over row')
+    await phone.getByText('Barbell bent-over row').first().click()
+    await phone.getByRole('tab', { name: 'Setup 2' }).click()
+    await phone.getByRole('heading', { name: 'Back angle from the side' }).waitFor()
+    await phone.locator('.inkwrap img').first().waitFor()
+    await phone.screenshot({ path: `${shots}/26-sync-phone-form-card.png` })
+
+    // A change on the phone reaches the Mac.
+    await phone.getByRole('button', { name: 'Rename' }).click()
+    await phone.locator('#rename').fill('Bent-over row, overhand')
+    await phone.getByRole('button', { name: 'Save name' }).click()
+    await phone.getByRole('navigation').getByRole('button', { name: 'Settings' }).click()
+    box = phone.getByRole('region', { name: 'Sync' })
+    fake.expireTokens() // the phone's token is refused once and refreshed
+    await box.getByRole('button', { name: 'Sync now' }).click()
+    await phone.waitForFunction(() => !document.body.innerText.includes('waiting to send'))
+    await page.getByRole('region', { name: 'Sync' }).getByRole('button', { name: 'Sync now' }).click()
+    await page.getByRole('navigation').getByRole('button', { name: 'Library' }).click()
+    await page.getByLabel('Search library').fill('overhand')
+    await page.getByText('Bent-over row, overhand').first().waitFor({ timeout: 8000 })
+    await page.getByLabel('Search library').fill('')
+    await ctx2.close()
+  })
+
   await step('data survives reload', async () => {
     await page.reload()
     await page.getByRole('navigation').getByRole('button', { name: 'History' }).click()
@@ -334,6 +397,7 @@ try {
 } finally {
   await browser.close()
   server.kill()
+  fake.server.close()
 }
 
 if (errors.length) {

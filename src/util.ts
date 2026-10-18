@@ -72,9 +72,22 @@ export async function photoUrl(id: string): Promise<string | undefined> {
   return url
 }
 
-export async function savePhoto(id: string, blob: Blob) {
-  await db.put('photos', id, blob)
+const photoWaiters = new Map<string, Set<() => void>>()
+
+/** Runs fn when a photo that wasn't on this device yet arrives (from sync). Returns an unsubscribe. */
+export function whenPhotoArrives(id: string, fn: () => void) {
+  let set = photoWaiters.get(id)
+  if (!set) photoWaiters.set(id, (set = new Set()))
+  set.add(fn)
+  return () => {
+    set.delete(fn)
+  }
+}
+
+export async function savePhoto(id: string, blob: Blob, opts?: { silent?: boolean }) {
+  await db.put('photos', id, blob, opts)
   photoUrls.delete(id)
+  photoWaiters.get(id)?.forEach((fn) => fn())
 }
 
 export async function deletePhoto(id: string) {

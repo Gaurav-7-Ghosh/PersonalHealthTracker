@@ -92,7 +92,7 @@ flowchart LR
 
 - **Code:** `screens/Settings.tsx`.
 - **Backup:** creates one JSON file with every store, photos included as data URLs. It uses the share sheet where available, otherwise a download.
-- **Restore:** replaces everything on the device and runs the seed migration again.
+- **Restore:** replaces everything on the device and runs the seed migration again. It signs the device out of sync first.
 - **Remove untouched starter entries:** keeps anything edited (`updatedAt !== createdAt`), anything used in a session, and anything in a routine.
 - **Footer:** shows the version.
 
@@ -116,7 +116,21 @@ flowchart LR
 - **Library:** the "Bookmarked" chip limits the list to bookmarks.
 - **Exercise lists:** bookmarked exercises sort right after primary-muscle ones and show a small bookmark mark.
 
-## 9. Offline and updates
+## 9. Sync between devices
+
+```mermaid
+flowchart LR
+  S["Settings<br/>Sync between devices"] -->|"URL, key, email, password"| SI["sync.signIn()<br/>/auth/v1/token"]
+  SI --> M["Mark everything on this device to send"] --> N["syncNow()"]
+  W["Any local write<br/>db.put / db.del"] -->|onChange| O["outbox"] -->|"after 2 s"| N
+  N --> P1["pull rows newer than cursor"] --> P2["push outbox rows"] --> P3["upload / download photos"] --> R["store.reload()"]
+```
+
+- **Code:** `src/sync.ts`; the Settings section is `SyncSection` in `screens/Settings.tsx`. Setup and SQL are in [SYNC.md](SYNC.md).
+- **Triggers:** after a change, on open, on return to the app, when back online, every minute, and Sync now.
+- **Conflicts:** newest change wins per record. A workout in progress and today's busy equipment stay on the device.
+
+## 10. Offline and updates
 
 - **Service worker** (`public/sw.js`, cache `workout-v2`):
   - The page is network first, so a new deploy arrives the next time the app opens with signal.

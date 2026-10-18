@@ -3,7 +3,7 @@
 // the photo's pixel space, so they stay sharp and can be edited later.
 import { useEffect, useRef, useState } from 'react'
 import type { Ink, InkMark, PhotoRef } from '../types'
-import { photoUrl } from '../util'
+import { photoUrl, whenPhotoArrives } from '../util'
 import { Icon } from './Icon'
 
 export const INK_COLORS = [
@@ -20,15 +20,19 @@ function usePhoto(id: string) {
   useEffect(() => {
     let live = true
     setSize(undefined)
-    photoUrl(id).then((u) => {
-      if (!live || !u) return
-      setSrc(u)
-      const i = new Image()
-      i.onload = () => live && setSize({ w: i.naturalWidth, h: i.naturalHeight })
-      i.src = u
-    })
+    const load = () =>
+      photoUrl(id).then((u) => {
+        if (!live || !u) return
+        setSrc(u)
+        const i = new Image()
+        i.onload = () => live && setSize({ w: i.naturalWidth, h: i.naturalHeight })
+        i.src = u
+      })
+    load()
+    const off = whenPhotoArrives(id, load)
     return () => {
       live = false
+      off()
     }
   }, [id])
   return { src, size }

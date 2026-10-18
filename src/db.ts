@@ -68,8 +68,19 @@ export async function get<T>(store: StoreName, key: string): Promise<T | undefin
   }
 }
 
-export async function put(store: StoreName, key: string, value: unknown): Promise<void> {
+type ChangeListener = (store: StoreName, key: string, value: unknown) => void
+let listener: ChangeListener | undefined
+/** Sync uses this to note every local change. Writes made by sync itself pass { silent: true }. */
+export function onChange(fn: ChangeListener | undefined) {
+  listener = fn
+}
+interface WriteOpts {
+  silent?: boolean
+}
+
+export async function put(store: StoreName, key: string, value: unknown, opts: WriteOpts = {}): Promise<void> {
   mem(store).set(key, value)
+  if (!opts.silent) listener?.(store, key, value)
   try {
     if (memoryOnly) return
     await tx(store, 'readwrite', (s) => s.put(value, key))
@@ -78,8 +89,9 @@ export async function put(store: StoreName, key: string, value: unknown): Promis
   }
 }
 
-export async function del(store: StoreName, key: string): Promise<void> {
+export async function del(store: StoreName, key: string, opts: WriteOpts = {}): Promise<void> {
   mem(store).delete(key)
+  if (!opts.silent) listener?.(store, key, undefined)
   try {
     if (memoryOnly) return
     await tx(store, 'readwrite', (s) => s.delete(key))

@@ -20,7 +20,8 @@ Later it will add meal plans and macros, and Garmin data. It's a senior develope
 
 | Decision | Reason |
 |---|---|
-| Zero cost: no server, no paid services | Gaurav's hard constraint |
+| Zero cost: no server of our own, no paid services | Gaurav's hard constraint |
+| Optional sync through his own free Supabase project, hand-written `fetch` client, email + password sign-in | Phone and Mac share data and photos; no library in the bundle; magic links would sign in Safari, not the Home Screen app |
 | Offline-first PWA: one HTML file, service worker, IndexedDB | Gym has poor signal; nothing should need loading mid-set |
 | Home screen is blank, no preset plans | Gaurav trains by feel; he picks what to do each day |
 | Start workout: body map, then muscle, then exercises with equipment filter chips | His requested flow; both sides of a muscle are one target; back view for back muscles and hamstrings |
@@ -50,6 +51,7 @@ See [CHANGELOG.md](../CHANGELOG.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [FLO
 
 - Bookmarks: a bookmark button on the exercise page and in sessions, a Bookmarks screen from Today grouped by section, a Bookmarked filter in the library, and markers in lists.
 - Named lists: the bookmark button opens "Save to", where an exercise can go into your own lists. Lists can be created, renamed and deleted, and appear on the Bookmarks screen, as library filter chips, and as tags on the exercise page.
+- Sync between devices through Supabase (optional, free tier). See [SYNC.md](SYNC.md). Gaurav creates the Supabase project himself and signs in on each device.
 - Fix: sheets now open above the tab bar on every screen.
 - Release these as 0.2.0 when ready (see Releases in the README).
 
