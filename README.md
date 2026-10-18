@@ -4,6 +4,8 @@ A personal, offline-first workout companion that runs in the browser and install
 
 Spec: see the SRS doc in the Workout and Lifestyle project. This version covers SRS sections 2.1 to 2.5.
 
+Docs: [Architecture](docs/ARCHITECTURE.md) · [User flows](docs/FLOWS.md) · [Handoff, decisions and open items](docs/HANDOFF.md) · [Changelog](CHANGELOG.md)
+
 ## Run it
 
 ```bash
