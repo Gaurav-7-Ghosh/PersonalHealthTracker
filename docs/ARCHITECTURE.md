@@ -49,12 +49,12 @@ src/
     Ink.tsx         PhotoView (photo + drawing), Lightbox (zoom), InkEditor, CropEditor
     LinkThumb.tsx   cover image > YouTube thumbnail > play icon
     Icon.tsx        inline stroke icons
-    ui.tsx          TopBar, Sheet, Confirm, Stepper, RenameSheet, BookmarkButton, BookmarkMark, Chip, Tag, Photo, Thumb, Empty, EntryPicker
+    ui.tsx          TopBar, Sheet, Confirm, Stepper, RenameSheet, BookmarkButton (+ Save to sheet), BookmarkMark, Chip, Tag, Photo, Thumb, Empty, EntryPicker
   screens/
     Today.tsx         blank home: Start workout, Home HIIT, Save a link, Inbox, recent sessions
     StartWorkout.tsx  BodyPicker -> RegionScreen -> ExerciseList (equipment filter, create own)
     Library.tsx       search + kind/region/muscle filters + Bookmarked chip
-    Bookmarks.tsx     bookmarked exercises grouped by section (kind)
+    Bookmarks.tsx     Bookmarks (your lists + by section) and ListScreen
     EntryView.tsx     one exercise: form card, links, notes, muscles, swaps, history
     EntryEdit.tsx     create/edit an exercise (draft, Save/Cancel)
     FormEdit.tsx      form card editor (autosaves): cues, photos, heading, notes, draw, crop
@@ -85,17 +85,18 @@ erDiagram
   ROUTINE_ITEM }o--|| ENTRY : entryId
 ```
 
-- **Entry**: anything you can do. `kind` is strength, mobility, stretch, warmup or hiit. `measure` is weight_reps, reps, hold or time. It also has `regions`, `muscles` (each with a role of primary, secondary or stabiliser), `equipment`, `pattern`, `cues`, `photos`, `links`, `notes`, `pinnedSwaps`, `bookmarkedAt` (set when bookmarked) and `sample` (true for starter entries). `updatedAt === createdAt` means a starter entry is untouched.
+- **Entry**: anything you can do. `kind` is strength, mobility, stretch, warmup or hiit. `measure` is weight_reps, reps, hold or time. It also has `regions`, `muscles` (each with a role of primary, secondary or stabiliser), `equipment`, `pattern`, `cues`, `photos`, `links`, `notes`, `pinnedSwaps`, `bookmarkedAt` (set when bookmarked), `lists` (ids of your named lists) and `sample` (true for starter entries). `updatedAt === createdAt` means a starter entry is untouched.
 - **PhotoRef**: `id` (a key in the `photos` store), `position` (setup, start, mid, end or other), `title` (heading above the photo), `caption` (notes below) and `ink`.
 - **Ink**: drawings stored as shapes (`pen`, `line`, `arrow`, `text`) in the photo's own pixel space `{w, h}`. They are rendered as an SVG over the image, so they stay sharp and editable. Cropping shifts the marks.
 - **LinkRef**: `label` (for example Proper form), `url`, `title`, `thumb` (YouTube) and `cover` (a photo id you picked, for Instagram or TikTok).
 - **Session**: `items[]` of `{entryId, swappedFrom?, target, sets[]}`, `current`, and an optional `hiit` block. The running session is kept in `meta` under `active` until it is finished.
-- **Settings**: rest timers, weight step, `busyEquipment`, `seedVersion`.
+- **Settings**: rest timers, weight step, `busyEquipment`, `seedVersion`, `lists` (your named lists: `{id, name, createdAt}`).
 
 IndexedDB stores: `entries`, `routines`, `sessions`, `inbox`, `photos` (JPEG blobs, at most 1600 px), `meta` (settings and the active session).
 
 ## State and navigation (`src/store.tsx`)
 
+- `Sheet` renders through a portal into `<body>`, so it always sits above the tab bar.
 - `StoreProvider` loads everything from IndexedDB once (`reload`), runs the seed migration, and keeps arrays in React state. Every mutation (`saveEntry`, `saveSession`, ...) updates state and writes through to IndexedDB.
 - Navigation is a stack of `Route` objects: `go` pushes, `replace` swaps the top, `back` pops and `resetTo` sets the whole stack. `go` to a tab name resets the stack to that tab. `App.tsx` renders the top route; `SECTION` decides which tab is highlighted. Only the `session` route hides the tab bar.
 - `history(entryId)` returns previous `{session, item}` pairs (newest first) from finished sessions. `lastSets` is the most recent sets.

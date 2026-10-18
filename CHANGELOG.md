@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Bookmarks: bookmark any exercise from its page or during a session. Bookmarks are listed by section (Strength, Mobility, Stretches, ...) from Today, and the library has a Bookmarked filter.
+- Named lists: save exercises into your own lists (for example "Morning mobility") from the bookmark button. You can rename and delete lists, they appear on the Bookmarks screen and as library filters, and they show as tags on the exercise page.
+- Fix: bottom sheets no longer open behind the tab bar.
 
 ## 0.1.0 (2026-10-18)
 
