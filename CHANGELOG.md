@@ -6,6 +6,7 @@
 - Named lists: save exercises into your own lists (for example "Morning mobility") from the bookmark button. You can rename and delete lists, they appear on the Bookmarks screen and as library filters, and they show as tags on the exercise page.
 - Sync between devices (optional): sign in from Settings with your own free Supabase project, and exercises, form cards with photos, links, bookmarks, lists, history and settings stay the same on your phone and Mac. It still works offline and syncs when there's signal. Setup in docs/SYNC.md.
 - Fix: bottom sheets no longer open behind the tab bar.
+- Fix: on iPhones with a Dynamic Island or notch, the Home Screen app no longer hides the top of each screen (the date, titles and the workout header) under the status bar.
 
 ## 0.1.0 (2026-10-18)
 
