@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { FormCard } from '../components/FormCard'
 import { Icon } from '../components/Icon'
-import { Empty, EntryPicker, Sheet, Tag, TopBar } from '../components/ui'
+import { Empty, EntryPicker, RenameSheet, Sheet, Tag, TopBar } from '../components/ui'
 import { bestSet, useStore } from '../store'
 import { rankSwaps, recentEntryIds } from '../swap'
 import { kindLabel, platformOf } from '../taxonomy'
@@ -20,6 +20,7 @@ export function EntryView({ id }: { id: string }) {
   const e = entry(id)
   const [pickSwap, setPickSwap] = useState(false)
   const [toRoutine, setToRoutine] = useState(false)
+  const [renaming, setRenaming] = useState(false)
 
   const swaps = useMemo(
     () => (e ? rankSwaps(e, entries, { busy: [], recent: recentEntryIds(sessions), limit: 4 }) : []),
@@ -43,7 +44,13 @@ export function EntryView({ id }: { id: string }) {
           </button>
         }
       />
-      <h1 className="entry-title">{e.name}</h1>
+      <div className="title-row">
+        <h1 className="entry-title">{e.name}</h1>
+        <button type="button" className="icon-btn" aria-label="Rename" onClick={() => setRenaming(true)}>
+          <Icon name="edit" size={18} />
+        </button>
+      </div>
+      <RenameSheet entry={e} open={renaming} onClose={() => setRenaming(false)} />
       <div className="tags">
         {e.pattern && <Tag>{e.pattern}</Tag>}
         {e.equipment.map((q) => (

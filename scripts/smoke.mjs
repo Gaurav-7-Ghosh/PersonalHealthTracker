@@ -105,8 +105,13 @@ try {
   await step('session: log sets, swap, finish', async () => {
     await page.getByRole('button', { name: 'Start with Incline barbell bench press' }).click()
     await page.getByRole('heading', { name: 'Incline barbell bench press' }).waitFor()
-    await page.locator('#st-weight').fill('60')
+    await page.locator('#st-weight').click()
+    await page.keyboard.type('62.5')
+    await page.keyboard.press('Enter')
+    if ((await page.locator('#st-weight').inputValue()) !== '62.5') throw new Error('typed weight did not stick')
     await page.getByRole('button', { name: 'Log set 1' }).click()
+    await page.getByText('62.5×10').waitFor()
+    await page.locator('#st-weight').fill('60')
     await page.getByRole('button', { name: 'Log set 2' }).click()
     await shot('09-session')
     await page.getByRole('button', { name: /Busy\? Swap/ }).click()
@@ -137,6 +142,23 @@ try {
     await page.getByText('Incline barbell bench press').first().click()
     await page.getByText('60 kg × 10').first().waitFor()
     await shot('13-entry-history')
+  })
+
+  await step('rename an exercise and see last time in a session', async () => {
+    await page.getByRole('button', { name: 'Rename' }).click()
+    await page.locator('#rename').fill('Incline bench 30 degrees')
+    await page.getByRole('button', { name: 'Save name' }).click()
+    await page.getByRole('heading', { name: 'Incline bench 30 degrees' }).waitFor()
+    await page.getByRole('button', { name: 'Log now' }).click()
+    await page.getByRole('heading', { name: 'Incline bench 30 degrees' }).waitFor()
+    const card = page.getByRole('region', { name: 'Last time' })
+    await card.getByText('62.5 kg × 10').waitFor()
+    await page.locator('#st-weight').fill('40')
+    await card.getByRole('button', { name: /Use set 1 from last time/ }).click()
+    if ((await page.locator('#st-weight').inputValue()) !== '62.5') throw new Error('last-time set did not fill the weight')
+    await shot('13b-last-time')
+    await page.getByRole('button', { name: 'Finish' }).click()
+    await page.getByRole('button', { name: 'Discard session' }).click()
   })
 
   await step('hiit timer runs', async () => {

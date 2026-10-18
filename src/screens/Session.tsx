@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FormCard } from '../components/FormCard'
 import { Icon } from '../components/Icon'
-import { Chip, Confirm, Empty, Sheet, Stepper } from '../components/ui'
+import { Chip, Confirm, Empty, RenameSheet, Sheet, Stepper } from '../components/ui'
 import { useStore } from '../store'
 import { rankSwaps, recentEntryIds } from '../swap'
 import type { Entry, SessionItem, SetLog } from '../types'
-import { beep, fmtClock, fmtNum, keepAwake, vibrate } from '../util'
+import { ago, beep, fmtClock, fmtDate, fmtNum, keepAwake, vibrate } from '../util'
 import { fmtSet } from './EntryView'
 
 export function SessionScreen() {
   const store = useStore()
-  const { active, entry, updateActive, finishActive, discardActive, lastSets, settings, replace, go } = store
+  const { active, entry, updateActive, finishActive, discardActive, lastSets, history, settings, replace, go } = store
   const [restEnd, setRestEnd] = useState<number | null>(null)
   const [now, setNow] = useState(Date.now())
   const [swapOpen, setSwapOpen] = useState(false)
@@ -18,6 +18,7 @@ export function SessionScreen() {
   const [formOpen, setFormOpen] = useState(false)
   const [finishing, setFinishing] = useState(false)
   const [delSet, setDelSet] = useState<number | null>(null)
+  const [renaming, setRenaming] = useState(false)
 
   useEffect(() => {
     keepAwake(true)
@@ -75,7 +76,7 @@ export function SessionScreen() {
   const setsDone = active.items.reduce((n, i) => n + i.sets.length, 0)
   const nextItem = active.items[active.current + 1]
   const nextEntry = nextItem ? entry(nextItem.entryId) : undefined
-  const prevLog = item ? lastSets(item.entryId) : undefined
+  const prev = item ? history(item.entryId)[0] : undefined
   const isMobility = e && e.kind !== 'strength'
 
   const logSet = () => {
@@ -159,13 +160,42 @@ export function SessionScreen() {
       ) : (
         <>
           <div className="ex-head">
-            <h1>{e.name}</h1>
+            <div className="title-row">
+              <h1>{e.name}</h1>
+              <button type="button" className="icon-btn" aria-label="Rename" onClick={() => setRenaming(true)}>
+                <Icon name="edit" size={18} />
+              </button>
+            </div>
             {item.swappedFrom && <div className="muted small">Swapped from {entry(item.swappedFrom)?.name}</div>}
             <div className="muted">
               Target {item.target.sets} × {e.measure === 'hold' ? `${item.target.hold ?? 30} s` : item.target.reps ?? 10}
-              {prevLog && ` · Last time ${prevLog.map((s) => fmtSet(s, e)).join(', ')}`}
             </div>
           </div>
+          <RenameSheet entry={e} open={renaming} onClose={() => setRenaming(false)} />
+
+          <section className="last-time" aria-label="Last time">
+            <div className="last-time-head">
+              <span className="eyebrow">Last time</span>
+              <span className="muted small">{prev ? `${fmtDate(prev.session.startedAt)} · ${ago(prev.session.startedAt)}` : 'First time logging this'}</span>
+            </div>
+            {prev && (
+              <ol className="last-sets">
+                {prev.item.sets.map((s, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      className={i === item.sets.length ? 'last-set now' : 'last-set'}
+                      aria-label={`Use set ${i + 1} from last time: ${fmtSet(s, e)}`}
+                      onClick={() => setCur({ ...cur, weight: s.weight ?? cur.weight, reps: s.reps ?? cur.reps, hold: s.hold ?? cur.hold })}
+                    >
+                      <span className="muted small">Set {i + 1}</span>
+                      <span className="last-val">{fmtSet(s, e)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
 
           {e.cues.length > 0 && (
             <button type="button" className="cue-strip" onClick={() => setFormOpen(true)}>

@@ -106,6 +106,20 @@ export function Stepper({
   big?: boolean
 }) {
   const id = 'st-' + label.toLowerCase().replace(/\W+/g, '-')
+  // Typed text is kept as a draft so "62." or an empty field don't snap back while typing.
+  const [draft, setDraft] = useState<string | null>(null)
+  const shown = draft ?? (Number.isFinite(value) ? String(value) : '')
+  const decimals = !Number.isInteger(step)
+  const commit = () => {
+    if (draft === null) return
+    const n = parseFloat(draft.replace(',', '.'))
+    onChange(Number.isFinite(n) ? Math.max(min, n) : min)
+    setDraft(null)
+  }
+  const nudge = (d: number) => {
+    setDraft(null)
+    onChange(Math.max(min, +(value + d).toFixed(2)))
+  }
   return (
     <div className={big ? 'stepper big' : 'stepper'}>
       <label className="eyebrow" htmlFor={id}>
@@ -114,26 +128,75 @@ export function Stepper({
       <div className="stepper-value">
         <input
           id={id}
-          inputMode="decimal"
-          value={Number.isFinite(value) ? String(value) : ''}
+          type="text"
+          inputMode={decimals ? 'decimal' : 'numeric'}
+          pattern={decimals ? '[0-9]*[.,]?[0-9]*' : '[0-9]*'}
+          enterKeyHint="done"
+          autoComplete="off"
+          value={shown}
           onChange={(e) => {
-            const n = parseFloat(e.target.value.replace(',', '.'))
-            onChange(Number.isFinite(n) ? n : 0)
+            const t = e.target.value
+            if (!/^\d*([.,]\d*)?$/.test(t) || (!decimals && /[.,]/.test(t))) return
+            setDraft(t)
+            const n = parseFloat(t.replace(',', '.'))
+            if (Number.isFinite(n)) onChange(Math.max(min, n))
           }}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
           onFocus={(e) => e.target.select()}
-          style={{ width: `${Math.max(2, String(value).length) + 0.6}ch` }}
+          style={{ width: `${Math.max(2, shown.length) + 0.6}ch` }}
         />
         {unit && <span className="unit">{unit}</span>}
       </div>
       <div className="stepper-btns">
-        <button type="button" aria-label={`Decrease ${label}`} onClick={() => onChange(Math.max(min, +(value - step).toFixed(2)))}>
-          <Icon name="minus" size={22} />
+        <button type="button" aria-label={`Decrease ${label}`} onClick={() => nudge(-step)}>
+          <Icon name="minus" size={20} />
         </button>
-        <button type="button" aria-label={`Increase ${label}`} onClick={() => onChange(+(value + step).toFixed(2))}>
-          <Icon name="plus" size={22} />
+        <button type="button" aria-label={`Increase ${label}`} onClick={() => nudge(step)}>
+          <Icon name="plus" size={20} />
         </button>
       </div>
     </div>
+  )
+}
+
+/** Rename an exercise in place, from wherever its name is shown. */
+export function RenameSheet({ entry, open, onClose }: { entry: Entry; open: boolean; onClose: () => void }) {
+  const { entries, saveEntry, notify } = useStore()
+  const [name, setName] = useState(entry.name)
+  useEffect(() => {
+    if (open) setName(entry.name)
+  }, [open, entry.name])
+  const clean = name.trim()
+  const taken = entries.some((x) => x.id !== entry.id && x.name.toLowerCase() === clean.toLowerCase())
+  const save = async () => {
+    if (!clean || taken) return
+    if (clean !== entry.name) {
+      await saveEntry({ ...entry, name: clean, updatedAt: Date.now() })
+      notify('Renamed')
+    }
+    onClose()
+  }
+  return (
+    <Sheet open={open} onClose={onClose} title="Rename exercise">
+      <form
+        className="form"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          save()
+        }}
+      >
+        <div className="field">
+          <label htmlFor="rename">Name</label>
+          <input id="rename" value={name} onChange={(ev) => setName(ev.target.value)} autoFocus enterKeyHint="done" />
+          {taken && <span className="muted small">You already have an exercise with this name.</span>}
+        </div>
+        <p className="muted small">Your logs, photos and links stay with it.</p>
+        <button type="submit" className="btn primary" disabled={!clean || taken}>
+          Save name
+        </button>
+      </form>
+    </Sheet>
   )
 }
 
