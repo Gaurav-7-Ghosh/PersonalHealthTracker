@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
+import { LinkThumb } from '../components/LinkThumb'
 import { Chip, Confirm, Photo, TopBar } from '../components/ui'
 import { blankEntry, useStore } from '../store'
 import { EQUIPMENT, KINDS, LINK_LABELS, MEASURES, NOTE_LABELS, PATTERNS, POSITIONS, REGIONS, defaultMeasure } from '../taxonomy'
@@ -224,9 +225,9 @@ export function EntryEdit({
               value={l.url}
               onChange={(x) => set({ links: e.links.map((q, j) => (j === i ? { ...q, url: x.target.value } : q)) })}
               onBlur={async () => {
-                if (!l.url || l.title) return
+                if (!l.url || (l.title && l.thumb)) return
                 const info = await fetchLinkInfo(l.url)
-                if (info.title) setE((x) => ({ ...x, links: x.links.map((q) => (q.id === l.id ? { ...q, ...info } : q)) }))
+                if (info.title || info.thumb) setE((x) => ({ ...x, links: x.links.map((q) => (q.id === l.id ? { ...q, ...info } : q)) }))
               }}
             />
             <input
@@ -235,7 +236,48 @@ export function EntryEdit({
               value={l.title ?? ''}
               onChange={(x) => set({ links: e.links.map((q, j) => (j === i ? { ...q, title: x.target.value } : q)) })}
             />
-            <button type="button" className="link-btn danger-ink" onClick={() => set({ links: e.links.filter((_, j) => j !== i) })}>
+            <div className="cover-row">
+              <LinkThumb link={l} />
+              <label className="btn small ghost">
+                <Icon name="camera" size={16} /> {l.cover ? 'Change cover' : 'Add cover image'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  aria-label={`Cover image for link ${i + 1}`}
+                  onChange={async (x) => {
+                    const f = x.target.files?.[0]
+                    x.target.value = ''
+                    if (!f) return
+                    const pid = uid()
+                    await savePhoto(pid, await resizeImage(f, 640))
+                    setAdded((a) => [...a, pid])
+                    if (l.cover) setRemoved((r) => [...r, l.cover!])
+                    setE((y) => ({ ...y, links: y.links.map((q) => (q.id === l.id ? { ...q, cover: pid } : q)) }))
+                  }}
+                />
+              </label>
+              {l.cover && (
+                <button
+                  type="button"
+                  className="link-btn"
+                  onClick={() => {
+                    setRemoved((r) => [...r, l.cover!])
+                    set({ links: e.links.map((q, j) => (j === i ? { ...q, cover: undefined } : q)) })
+                  }}
+                >
+                  Remove cover
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              className="link-btn danger-ink"
+              onClick={() => {
+                if (l.cover) setRemoved((r) => [...r, l.cover!])
+                set({ links: e.links.filter((_, j) => j !== i) })
+              }}
+            >
               Remove link
             </button>
           </div>

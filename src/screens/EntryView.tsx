@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { FormCard } from '../components/FormCard'
+import { LinkThumb } from '../components/LinkThumb'
 import { Icon } from '../components/Icon'
 import { Empty, EntryPicker, RenameSheet, Sheet, Tag, TopBar } from '../components/ui'
 import { bestSet, useStore } from '../store'
@@ -74,7 +75,7 @@ export function EntryView({ id }: { id: string }) {
               <div className="kv-vals">
                 {links.map((l) => (
                   <a key={l.id} className="link-row" href={l.url} target="_blank" rel="noreferrer">
-                    {l.thumb ? <img src={l.thumb} alt="" className="link-thumb" /> : <span className="link-thumb ph"><Icon name="play" size={16} /></span>}
+                    <LinkThumb link={l} />
                     <span className="list-main">
                       <span className="list-name clamp">{l.title || l.url}</span>
                       <span className="list-sub">{platformOf(l.url)} · needs network</span>

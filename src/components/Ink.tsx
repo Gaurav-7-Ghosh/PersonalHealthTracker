@@ -126,6 +126,7 @@ export function Lightbox({ photos, index, title, label, onClose }: { photos: Pho
           {zoom}×
         </button>
       </div>
+      {p.title && <div className="lightbox-heading">{p.title}</div>}
       <div
         className="lightbox-stage"
         onTouchStart={(e) => ((e.currentTarget as HTMLElement).dataset.x = String(e.touches[0].clientX))}

@@ -874,8 +874,9 @@ textarea {
   text-decoration: none;
 }
 .link-thumb {
-  width: 64px;
-  height: 40px;
+  width: 96px;
+  height: 54px;
+  background: var(--raised);
   border-radius: 6px;
   object-fit: cover;
   flex-shrink: 0;
@@ -1726,6 +1727,7 @@ textarea {
   justify-items: center;
 }
 .fc-photo > textarea,
+.fc-photo > input,
 .fc-photo-row {
   width: 100%;
 }
@@ -1737,4 +1739,23 @@ textarea {
 .fc-photo-row select {
   flex: 1;
   min-width: 0;
+}
+
+.photo-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.lightbox-heading {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+}
+.cover-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }

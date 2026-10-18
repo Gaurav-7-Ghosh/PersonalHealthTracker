@@ -16,6 +16,9 @@ const errors = []
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {})
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, colorScheme: 'dark', hasTouch: true })
 const page = await ctx.newPage()
+// No internet in the test: answer YouTube thumbnail requests with a tiny grey PNG.
+const GREY = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
+await ctx.route('https://i.ytimg.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: GREY }))
 page.on('pageerror', (e) => errors.push(e.message))
 page.on('console', (m) => m.type() === 'error' && !m.text().startsWith('Failed to load resource') && errors.push(m.text()))
 
@@ -55,7 +58,7 @@ try {
   await step('edit entry: add link and note', async () => {
     await page.getByRole('button', { name: 'Edit', exact: true }).click()
     await page.getByRole('button', { name: 'Add link' }).click()
-    await page.getByLabel('Link').fill('https://www.youtube.com/watch?v=example')
+    await page.getByLabel('Link', { exact: true }).fill('https://www.youtube.com/watch?v=example')
     await page.getByLabel('Title').fill('Serratus wall slide, form breakdown')
     await page.getByRole('button', { name: 'Add note' }).click()
     await page.getByLabel('Note').fill('Do not shrug at the top.')
@@ -63,6 +66,31 @@ try {
     await page.getByRole('button', { name: 'Save' }).click()
     await page.getByText('Serratus wall slide, form breakdown').waitFor()
     await page.getByText('Do not shrug at the top.').waitFor()
+    // YouTube thumbnails come from the video id, even with no network.
+    await page.locator('img.link-thumb[src="https://i.ytimg.com/vi/example/hqdefault.jpg"]').waitFor()
+  })
+
+  await step('cover image for an Instagram link', async () => {
+    await page.getByRole('button', { name: 'Edit', exact: true }).click()
+    await page.getByRole('button', { name: 'Add link' }).click()
+    await page.getByLabel('Link', { exact: true }).last().fill('https://www.instagram.com/reel/abc123/')
+    await page.getByLabel('Title').last().fill('Wall slide cue reel')
+    const png = await page.evaluate(() => {
+      const c = document.createElement('canvas')
+      c.width = 320
+      c.height = 180
+      const g = c.getContext('2d')
+      g.fillStyle = '#c4f36a'
+      g.fillRect(0, 0, 320, 180)
+      return c.toDataURL('image/png').split(',')[1]
+    })
+    await page.getByLabel('Cover image for link 2').setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') })
+    await page.getByRole('button', { name: 'Remove cover' }).waitFor()
+    await page.getByRole('button', { name: 'Save' }).click()
+    await page.getByText('Wall slide cue reel').waitFor()
+    const thumbs = await page.locator('a.link-row img.link-thumb').count()
+    if (thumbs < 2) throw new Error('expected a thumbnail on both links, got ' + thumbs)
+    await shot('04b-links')
   })
 
   await step('capture a link to an entry', async () => {
@@ -164,6 +192,7 @@ try {
     await page.getByLabel('Notes for photo 3').waitFor()
     await page.getByLabel('Position of photo 2').selectOption('setup')
     await page.getByLabel('Notes for photo 2').fill('Neutral back\nPush the hips back')
+    await page.getByLabel('Heading for photo 2').fill('Back angle from the side')
 
     // Draw an arrow and a typed note on the first photo.
     await page.getByRole('listitem', { name: /Photo 1/ }).getByRole('button', { name: 'Draw' }).click()
@@ -199,6 +228,8 @@ try {
     await page.getByRole('button', { name: 'Done' }).click()
     await page.getByRole('tab', { name: 'Setup 2' }).click()
     await page.getByText('Push the hips back').waitFor()
+    await page.getByRole('heading', { name: 'Back angle from the side' }).waitFor()
+    await shot('19b-heading')
     await page.getByRole('tab', { name: 'Setup 1' }).click()
     await shot('19-form-card')
     await page.getByRole('button', { name: /Open full screen/ }).click()

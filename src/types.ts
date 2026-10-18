@@ -23,6 +23,8 @@ export interface Ink {
 export interface PhotoRef {
   id: string
   position: PhotoPosition
+  /** What the frame shows, e.g. "Feet from the front"; shown above the photo. */
+  title?: string
   /** Notes for this frame; shown under the photo. */
   caption?: string
   ink?: Ink
@@ -34,6 +36,8 @@ export interface LinkRef {
   url: string
   title?: string
   thumb?: string
+  /** Your own cover image (a photo id), for sites like Instagram that don't share thumbnails. */
+  cover?: string
 }
 
 export interface NoteRef {

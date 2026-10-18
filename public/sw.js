@@ -1,6 +1,6 @@
-// Offline cache: the app is one HTML file plus fonts. Network first for the page so
+// Offline cache: the app is one HTML file plus fonts and YouTube thumbnails. Network first for the page so
 // updates arrive when online; cache first for everything else.
-const CACHE = 'workout-v1'
+const CACHE = 'workout-v2'
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icon.svg'])))
   self.skipWaiting()
@@ -15,7 +15,8 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url)
   const sameOrigin = url.origin === location.origin
   const isFont = url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com')
-  if (!sameOrigin && !isFont) return
+  const isThumb = url.hostname === 'i.ytimg.com'
+  if (!sameOrigin && !isFont && !isThumb) return
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)

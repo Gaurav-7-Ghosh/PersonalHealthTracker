@@ -49,6 +49,7 @@ export function FormCard({ entry, compact, onAddPhotos, onEdit }: { entry: Entry
 
       {photos.length > 0 ? (
         <div className="photos">
+          {cur?.title && <h3 className="photo-title">{cur.title}</h3>}
           <div
             className="photo-frame"
             onTouchStart={(e) => ((e.currentTarget as HTMLElement).dataset.x = String(e.touches[0].clientX))}

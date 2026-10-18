@@ -84,17 +84,37 @@ export async function deletePhoto(id: string) {
   photoUrls.delete(id)
 }
 
-// Title and thumbnail for YouTube links, when online. Other sites need a typed title.
-export async function fetchLinkInfo(url: string): Promise<{ title?: string; thumb?: string }> {
+/** The video id in a YouTube watch, share, Shorts or embed link. */
+export function youtubeId(url: string): string | undefined {
   try {
-    const host = new URL(url).hostname
-    if (!/youtube\.com|youtu\.be/.test(host)) return {}
-    const res = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`)
-    if (!res.ok) return {}
-    const j = await res.json()
-    return { title: j.title, thumb: j.thumbnail_url }
+    const u = new URL(url)
+    const h = u.hostname.replace(/^(www|m|music)\./, '')
+    if (h === 'youtu.be') return u.pathname.slice(1).split('/')[0] || undefined
+    if (!h.endsWith('youtube.com')) return undefined
+    return u.searchParams.get('v') ?? u.pathname.match(/^\/(?:shorts|embed|live|v)\/([\w-]{6,})/)?.[1]
   } catch {
-    return {}
+    return undefined
+  }
+}
+
+/** YouTube thumbnails can be worked out from the link alone, no network needed. */
+export const youtubeThumb = (url: string) => {
+  const id = youtubeId(url)
+  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : undefined
+}
+
+// Title (online only) and thumbnail for YouTube links. Instagram and TikTok don't
+// share either without a developer account, so those use a typed title and your own cover.
+export async function fetchLinkInfo(url: string): Promise<{ title?: string; thumb?: string }> {
+  const thumb = youtubeThumb(url)
+  if (!thumb) return {}
+  try {
+    const res = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`)
+    if (!res.ok) return { thumb }
+    const j = await res.json()
+    return { title: j.title, thumb }
+  } catch {
+    return { thumb }
   }
 }
 

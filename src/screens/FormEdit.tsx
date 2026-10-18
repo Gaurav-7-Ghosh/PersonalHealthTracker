@@ -174,6 +174,12 @@ export function FormEdit({ id }: { id: string }) {
         <ol className="fc-photos">
           {e.photos.map((p, i) => (
             <li key={p.id} className="fc-photo" aria-label={`Photo ${i + 1}, ${label(p)}`}>
+              <input
+                aria-label={`Heading for photo ${i + 1}`}
+                placeholder="Heading, e.g. Feet from the front"
+                value={p.title ?? ''}
+                onChange={(x) => setPhoto(p.id, { title: x.target.value })}
+              />
               <PhotoView photo={p} alt={`${label(p)} photo`} maxHeight="40vh" />
               <div className="fc-photo-row">
                 <select aria-label={`Position of photo ${i + 1}`} value={p.position} onChange={(x) => setPhoto(p.id, { position: x.target.value as PhotoPosition })}>
