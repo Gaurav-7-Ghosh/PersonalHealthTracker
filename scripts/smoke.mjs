@@ -328,6 +328,92 @@ try {
     await page.getByRole('button', { name: 'End' }).click()
   })
 
+  await step('health: log starter foods and a branded snack with a photo', async () => {
+    await page.getByRole('navigation').getByRole('button', { name: 'Health' }).click()
+    await page.getByRole('heading', { name: 'Health' }).waitFor()
+    await shot('28-health-empty')
+    // Two rotis at lunch from the starter foods.
+    await page.getByRole('button', { name: 'Add to Lunch' }).click()
+    await page.getByLabel('Search foods').fill('roti')
+    await page.getByRole('button', { name: /Wheat roti/ }).click()
+    await page.getByRole('button', { name: /2 × roti/ }).click()
+    await page.getByRole('button', { name: 'Add to Lunch' }).click()
+    await page.getByRole('heading', { name: 'Health' }).waitFor()
+    await page.getByTestId('kcal-total').getByText('239').waitFor()
+    // A branded snack from the back of the pack: 170 kcal per 30 g serving, with a photo.
+    await page.getByRole('button', { name: 'Add to Snacks' }).click()
+    await page.getByRole('button', { name: 'New' }).click()
+    await page.getByLabel('Name', { exact: true }).fill('Salted cashews')
+    await page.getByLabel('Brand').fill('Happilo')
+    const png = await page.evaluate(() => {
+      const c = document.createElement('canvas')
+      c.width = c.height = 300
+      const g = c.getContext('2d')
+      g.fillStyle = '#d9a35b'
+      g.fillRect(0, 0, 300, 300)
+      g.fillStyle = '#3b2a12'
+      g.font = 'bold 44px sans-serif'
+      g.fillText('CASHEW', 50, 160)
+      return c.toDataURL('image/png').split(',')[1]
+    })
+    await page.getByLabel('Food photo').setInputFiles({ name: 'pack.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') })
+    await page.locator('.food-photo img').waitFor()
+    await page.getByLabel('Values per').fill('30')
+    await page.getByLabel(/^Calories/).fill('170')
+    await page.getByLabel(/^Protein/).fill('5')
+    await page.getByLabel(/^Carbs/).fill('9')
+    await page.getByLabel(/^Fat/).fill('13')
+    await page.getByLabel(/^Sodium/).fill('95')
+    await page.getByText('567 kcal per 100 g').waitFor()
+    await shot('30-food-edit')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    // Straight to the amount: 15 g of a 170 kcal per 30 g label is 85 kcal.
+    await page.getByLabel('Amount', { exact: true }).fill('15')
+    await page.getByRole('dialog').getByText('85', { exact: true }).waitFor()
+    await shot('31-amount')
+    await page.getByRole('button', { name: 'Add to Snacks' }).click()
+    await page.getByTestId('kcal-total').getByText('324').waitFor()
+    // One tap from Recent next time, same amount as last time.
+    await page.getByRole('button', { name: 'Add food' }).click()
+    await page.getByRole('region', { name: 'Recent' }).getByRole('button', { name: /Salted cashews/ }).click()
+    await page.getByText('Last time: 15 g').waitFor()
+    await shot('32-recent')
+    await page.getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('button', { name: 'Back' }).first().click()
+    // Change the amount of something already logged.
+    await page.getByRole('button', { name: /Salted cashews Happilo/ }).click()
+    await page.getByLabel('Amount', { exact: true }).fill('10')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.getByTestId('kcal-total').getByText('296').waitFor()
+    await shot('29-health')
+    await page.getByRole('button', { name: 'Previous day' }).click()
+    await page.getByText('Nothing was logged on this day.').waitFor()
+    await page.getByRole('button', { name: 'Next day' }).click()
+    await page.getByRole('navigation').getByRole('button', { name: 'Today' }).click()
+    await page.getByText('of 2,000 kcal').waitFor()
+  })
+
+  await step('health: the counter starts again at midnight', async () => {
+    const c = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, colorScheme: 'dark', hasTouch: true })
+    await c.clock.install({ time: new Date(2026, 9, 21, 23, 58, 0) })
+    const p = await c.newPage()
+    p.on('pageerror', (e) => errors.push('clock: ' + e.message))
+    await p.goto(`http://localhost:${PORT}/`)
+    await p.getByRole('navigation').getByRole('button', { name: 'Health' }).click()
+    await p.getByRole('button', { name: 'Add food' }).click()
+    await p.getByLabel('Search foods').fill('banana')
+    await p.getByRole('button', { name: /Banana/ }).click()
+    await p.getByRole('dialog').getByRole('button', { name: /^Add to/ }).click()
+    await p.getByTestId('kcal-total').getByText('105').waitFor()
+    await c.clock.runFor(3 * 60_000)
+    await p.getByTestId('kcal-total').getByText('0', { exact: true }).waitFor()
+    await p.getByText('Nothing logged yet today').waitFor()
+    await p.getByRole('button', { name: 'Previous day' }).click()
+    await p.getByText('Yesterday').waitFor()
+    await p.getByTestId('kcal-total').getByText('105').waitFor()
+    await c.close()
+  })
+
   await step('settings and light theme', async () => {
     await page.getByRole('navigation').getByRole('button', { name: 'Settings' }).click()
     await page.getByRole('heading', { name: 'Backup' }).waitFor()
@@ -370,6 +456,10 @@ try {
     await phone.getByRole('navigation').getByRole('button', { name: 'Today' }).click()
     await phone.getByRole('button', { name: /Bookmarks/ }).click()
     await phone.getByRole('region', { name: 'Your lists' }).getByRole('button', { name: /Morning mobility 1 exercise/ }).waitFor()
+    // Foods and today's log come across too, pack photo included.
+    await phone.getByRole('navigation').getByRole('button', { name: 'Health' }).click()
+    await phone.getByTestId('kcal-total').getByText('296').waitFor()
+    await phone.locator('.list-row img.thumb').first().waitFor()
     await phone.getByRole('navigation').getByRole('button', { name: 'Library' }).click()
     await phone.getByLabel('Search library').fill('incline bench 30')
     await phone.getByText('Incline bench 30 degrees').first().waitFor()

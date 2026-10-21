@@ -33,6 +33,8 @@ const PATHS: Record<string, string> = {
   download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   share: 'M12 15V4M8 8l4-4 4 4M6 11H5v9h14v-9h-1',
   upload: 'M12 20V9M7 14l5-5 5 5M5 4h14',
+  heart: 'M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0112 7.3a4.2 4.2 0 017.5 2.5C19.5 15.4 12 20 12 20z',
+  bowl: 'M3 11h18a9 9 0 01-18 0zM8.5 7.5c0-1.2 1-1.8 1-3M12 7.5c0-1.2 1-1.8 1-3M15.5 7.5c0-1.2 1-1.8 1-3',
 }
 
 export function Icon({ name, size = 20, className }: { name: keyof typeof PATHS | string; size?: number; className?: string }) {

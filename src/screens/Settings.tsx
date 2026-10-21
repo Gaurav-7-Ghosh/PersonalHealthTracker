@@ -4,7 +4,7 @@ import { Confirm, Stepper } from '../components/ui'
 import * as db from '../db'
 import { useStore } from '../store'
 import * as sync from '../sync'
-import type { Entry, InboxItem, Routine, Session, Settings as SettingsT } from '../types'
+import type { Entry, Food, FoodLog, InboxItem, Routine, Session, Settings as SettingsT } from '../types'
 import { ago, blobToDataUrl, dataUrlToBlob, savePhoto } from '../util'
 
 interface Backup {
@@ -17,11 +17,14 @@ interface Backup {
   inbox: InboxItem[]
   settings: SettingsT
   photos: Record<string, string>
+  /** Added with the Health section; older backups don't have them. */
+  foods?: Food[]
+  foodlog?: FoodLog[]
 }
 
 export function Settings() {
   const store = useStore()
-  const { settings, saveSettings, entries, routines, sessions, inbox, notify, reload } = store
+  const { settings, saveSettings, entries, routines, sessions, inbox, foods, foodLog, notify, reload } = store
   const [usage, setUsage] = useState<string>()
   const [persisted, setPersisted] = useState<boolean>()
   const [pending, setPending] = useState<Backup | null>(null)
@@ -41,7 +44,7 @@ export function Settings() {
       const b = await db.get<Blob>('photos', id)
       if (b) photos[id] = await blobToDataUrl(b)
     }
-    const data: Backup = { app: 'workout-companion', version: 1, exportedAt: new Date().toISOString(), entries, routines, sessions, inbox, settings, photos }
+    const data: Backup = { app: 'workout-companion', version: 1, exportedAt: new Date().toISOString(), entries, routines, sessions, inbox, settings, photos, foods, foodlog: foodLog }
     const name = `workout-backup-${new Date().toISOString().slice(0, 10)}.json`
     const file = new File([JSON.stringify(data)], name, { type: 'application/json' })
     try {
@@ -79,6 +82,8 @@ export function Settings() {
     for (const r of b.routines) await db.put('routines', r.id, r)
     for (const s of b.sessions) await db.put('sessions', s.id, s)
     for (const i of b.inbox) await db.put('inbox', i.id, i)
+    for (const f of b.foods ?? []) await db.put('foods', f.id, f)
+    for (const l of b.foodlog ?? []) await db.put('foodlog', l.id, l)
     for (const [id, d] of Object.entries(b.photos)) await savePhoto(id, await dataUrlToBlob(d))
     await db.put('meta', 'settings', b.settings)
     await reload()
@@ -134,7 +139,7 @@ export function Settings() {
         </div>
         <input ref={fileRef} id="restore-file" type="file" accept="application/json,.json" hidden onChange={(e) => readBackup(e.target.files?.[0]).then(() => (e.target.value = ''))} />
         <p className="muted small">
-          {entries.length} entries · {routines.length} routines · {sessions.length} sessions{usage ? ` · ${usage}` : ''}
+          {entries.length} entries · {routines.length} routines · {sessions.length} sessions · {foods.length} foods · {foodLog.length} food logs{usage ? ` · ${usage}` : ''}
           {persisted === false && (
             <>
               {' · '}
@@ -174,7 +179,7 @@ export function Settings() {
 
       <section className="block">
         <h2>Starter data</h2>
-        <p className="muted">The app came with common exercises, stretches and HIIT moves so the lists aren't empty. Your own entries, and any starter entry you edited or logged, are never touched by this.</p>
+        <p className="muted">The app came with common exercises, stretches, HIIT moves and foods so the lists aren't empty. Your own entries, and any starter entry you edited or logged, are never touched by this.</p>
         <button type="button" className="btn ghost" onClick={() => setRemoveSamples(true)}>
           Remove untouched starter entries
         </button>
@@ -197,7 +202,7 @@ export function Settings() {
       <Confirm
         open={removeSamples}
         title="Remove starter entries?"
-        body="Starter entries you haven't edited, and starter routines, are removed. Anything you changed or logged stays."
+        body="Starter entries and foods you haven't edited, and starter routines, are removed. Anything you changed or logged stays."
         action="Remove"
         onClose={() => setRemoveSamples(false)}
         onConfirm={async () => {
@@ -211,13 +216,20 @@ export function Settings() {
               await store.deleteEntry(e.id)
               n++
             }
-          notify(`Removed ${n} starter entries`)
+          const eaten = new Set(foodLog.map((l) => l.foodId))
+          let nf = 0
+          for (const f of foods)
+            if (f.sample && f.updatedAt === f.createdAt && !eaten.has(f.id)) {
+              await store.deleteFood(f.id)
+              nf++
+            }
+          notify(`Removed ${n} starter entries and ${nf} foods`)
         }}
       />
       <Confirm
         open={wipe}
         title="Erase everything?"
-        body="All entries, photos, routines and history on this device are deleted, and this device is signed out of sync. Your synced copy is not touched. Save a backup first if you might want them."
+        body="All entries, photos, routines, foods and history on this device are deleted, and this device is signed out of sync. Your synced copy is not touched. Save a backup first if you might want them."
         action="Erase everything"
         danger
         onClose={() => setWipe(false)}

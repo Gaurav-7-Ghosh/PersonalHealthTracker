@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Health tab: a daily calorie counter with a ring against your goal (2,000 kcal to start; tap Goal to change it), protein, carbs and fat for the day, and what you ate grouped as Breakfast, Lunch, Snacks and Dinner. The count starts again at midnight on the phone; earlier days stay in history (use the arrows to look back or add to a past day).
+- Foods: about 20 starter foods (coffee, roti, rice, dal, rajma, chana, chicken tikka, paneer tikka, eggs, curd, ghee, nuts, fruit) from USDA FoodData Central, with home dishes worked out from those ingredients. Add your own with the brand, a photo of the pack, and the label's values for whatever amount it prints (per 100 g, per 30 g serving, per 200 ml cup...). Log the grams or ml you ate and the app scales it.
+- One tap for repeats: foods you've eaten show as photo tiles under Recent, with last time's amount ready. Tap anything logged to change the amount or meal, or remove it.
+- Today shows a Calories today card. Foods and food logs sync between devices like everything else (pack photos included), and are in backups.
 - Bookmarks: bookmark any exercise from its page or during a session. Bookmarks are listed by section (Strength, Mobility, Stretches, ...) from Today, and the library has a Bookmarked filter.
 - Named lists: save exercises into your own lists (for example "Morning mobility") from the bookmark button. You can rename and delete lists, they appear on the Bookmarks screen and as library filters, and they show as tags on the exercise page.
 - Sync between devices (optional): sign in from Settings with your own free Supabase project, and exercises, form cards with photos, links, bookmarks, lists, history and settings stay the same on your phone and Mac. It still works offline and syncs when there's signal. Setup in docs/SYNC.md.

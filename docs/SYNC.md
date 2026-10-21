@@ -18,12 +18,12 @@ flowchart LR
 
 - **Still offline-first.** Every change is written to IndexedDB first, as before. `db.ts` tells `sync.ts` about each write, and it notes the key and the time in an outbox.
 - **When it syncs:** two seconds after a change, when the app opens or comes back to the foreground, when the device comes back online, and every minute while the app is open. "Sync now" in Settings runs it straight away.
-- **One row per record.** The `records` table holds every entry, session, routine, inbox item and the settings as JSON, keyed by user, store and id. Deletes are kept as rows with `deleted = true`, so the other device deletes them too.
+- **One row per record.** The `records` table holds every entry, session, routine, inbox item, food, food log and the settings as JSON, keyed by user, store and id. Deletes are kept as rows with `deleted = true`, so the other device deletes them too.
 - **Newest change wins.** Each row carries `modified`, the time of the change on the device. A pull skips rows older than a local change that hasn't been sent yet, and the database ignores a push that is older than what it has.
 - **Pull by server time.** The database sets `synced_at` on every write. Each device remembers the newest `synced_at` it has seen and only asks for rows after it.
-- **Photos** are uploaded to a private bucket once, as `photos/{user id}/{photo id}`. Photo ids never change (crop makes a new one), so there's nothing to merge. A device downloads any photo that its entries use but it doesn't have yet.
+- **Photos** (form cards, link covers and food pack photos) are uploaded to a private bucket once, as `photos/{user id}/{photo id}`. Photo ids never change (crop makes a new one), so there's nothing to merge. A device downloads any photo that its entries use but it doesn't have yet.
 - **First sign-in on a device** sends everything on that device and pulls everything from Supabase, and the newest version of each record wins. Named lists from both devices are kept.
-- **Not synced:** a workout in progress (it syncs once you finish it), busy equipment for today, and starter entries you never touched (every device has them already).
+- **Not synced:** a workout in progress (it syncs once you finish it), busy equipment for today, and starter entries or foods you never touched (every device has them already). Foods and food logs need no change to the SQL: `store` is just text.
 - **Sign in** is email and password, inside the app. This matters on iPhone, where a Home Screen app has its own storage apart from Safari, so a magic link opened in Mail would sign in Safari instead of the app.
 
 ## Set up Supabase (one time, about 10 minutes, free)

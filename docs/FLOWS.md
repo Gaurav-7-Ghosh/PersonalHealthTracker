@@ -143,3 +143,23 @@ flowchart LR
   - The page is network first, so a new deploy arrives the next time the app opens with signal.
   - The page, fonts and YouTube thumbnails are cached first.
 - **Data:** stays in IndexedDB for this origin (the exact address). A new deploy never touches it. Moving to a different address needs a backup and restore.
+
+## 11. Daily calories (Health tab)
+
+```mermaid
+flowchart TD
+  H["Health<br/>ring, macros, meals for a day"] -->|"Add food / Add on a meal"| P["FoodList (picker)<br/>Recent photo tiles + all foods"]
+  H -->|My foods| M["FoodList (manage)"] --> E
+  P -->|tap a food| A["AmountSheet<br/>grams, portion chips, meal, live kcal"]
+  P -->|New| E["FoodEdit<br/>name, brand, pack photo,<br/>label values per N g/ml, portion"]
+  E -->|"Save: replace with picker, pick=id"| A
+  A -->|"Add: saveLog, resetTo Health"| H
+  H -->|tap a logged item| A2["AmountSheet (edit)<br/>change amount or meal, remove"]
+```
+
+- **Code:** `screens/Health.tsx` and `nutrition.ts`; starter foods in `foodSeed.ts`.
+- **The day:** `useToday()` gives the local `YYYY-MM-DD`; it sets a timer for the next midnight and re-checks when the app returns to the foreground, so the counter starts again at 12 am. The arrows step through past days; the day you look at is kept in a module variable, so adding to yesterday and coming back stays on yesterday.
+- **Label values:** a food keeps exactly what the pack prints, per whatever amount (`per` + `unit`). FoodEdit shows the per-100 g equivalent as a check. A log copies those values and stores the grams eaten; `scale()` does the maths.
+- **Repeats:** Recent lists the last 8 different foods eaten, with their photos. The amount sheet starts at last time's amount, else the food's portion, else its label amount.
+- **Brands:** the same name with two brands are two foods; FoodEdit warns when name and brand both match an existing food.
+- **Goal:** `settings.kcalGoal` (2,000 by default), set from the Goal link. Today shows a Calories today card.

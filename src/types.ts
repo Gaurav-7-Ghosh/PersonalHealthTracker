@@ -132,12 +132,69 @@ export interface Settings {
   seedVersion: number
   /** Your own named lists, e.g. "Morning mobility". Membership lives on Entry.lists. */
   lists: NamedList[]
+  /** Daily calorie target shown on the Health screen. */
+  kcalGoal: number
 }
 
 export interface NamedList {
   id: string
   name: string
   createdAt: number
+}
+
+/** Nutrition for some amount of a food. kcal is required; the rest are optional, as printed on the label. Grams, except sodium in mg. */
+export interface Nutrients {
+  kcal: number
+  protein?: number
+  carbs?: number
+  sugar?: number
+  fat?: number
+  satFat?: number
+  fibre?: number
+  sodium?: number
+}
+
+export type FoodUnit = 'g' | 'ml'
+export type Meal = 'breakfast' | 'lunch' | 'snack' | 'dinner'
+
+/**
+ * A food or drink you eat: a starter item, or your own with its brand and a photo of the pack.
+ * `n` is the nutrition for `per` grams (or ml), exactly as the label prints it (per 100 g, per 30 g serving, ...).
+ */
+export interface Food {
+  id: string
+  name: string
+  brand?: string
+  /** Photo id in the photos store, to tell packs apart at a glance. */
+  photo?: string
+  unit: FoodUnit
+  per: number
+  n: Nutrients
+  /** A handy portion, e.g. 1 roti = 40 g. */
+  serving?: { label: string; amount: number }
+  /** Where starter values came from. */
+  source?: string
+  sample?: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+/** One thing eaten on a day. Keeps a copy of the food's label values, so editing a food later doesn't rewrite past days. */
+export interface FoodLog {
+  id: string
+  /** Local calendar day, YYYY-MM-DD; a new day starts at midnight on the device. */
+  day: string
+  meal: Meal
+  foodId: string
+  name: string
+  brand?: string
+  unit: FoodUnit
+  amount: number
+  per: number
+  /** Nutrition per `per`, copied from the food when logged. */
+  base: Nutrients
+  at: number
+  updatedAt: number
 }
 
 export type Route =
@@ -159,3 +216,6 @@ export type Route =
   | { name: 'history' }
   | { name: 'sessionDetail'; id: string }
   | { name: 'settings' }
+  | { name: 'health' }
+  | { name: 'foods'; day?: string; meal?: Meal; pick?: string }
+  | { name: 'foodEdit'; id?: string; day?: string; meal?: Meal }

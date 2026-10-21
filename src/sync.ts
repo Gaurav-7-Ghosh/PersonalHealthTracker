@@ -5,7 +5,7 @@
 // See docs/SYNC.md for the Supabase setup and the SQL.
 import * as db from './db'
 import type { StoreName } from './db'
-import type { Entry, Settings } from './types'
+import type { Entry, Food, Settings } from './types'
 import { savePhoto } from './util'
 
 export interface SyncConfig {
@@ -38,7 +38,7 @@ export interface SyncStatus {
   error?: string
 }
 
-const RECORD_STORES: StoreName[] = ['entries', 'routines', 'sessions', 'inbox']
+const RECORD_STORES: StoreName[] = ['entries', 'routines', 'sessions', 'inbox', 'foods', 'foodlog']
 const BUCKET = 'photos'
 
 let state: SyncState = {}
@@ -83,8 +83,8 @@ const saveState = () => db.put('meta', 'sync', state, { silent: true })
 const saveOutbox = () => db.put('meta', 'outbox', outbox, { silent: true })
 const config = () => state.config
 
-/** Starter entries nobody has touched are the same on every device, so they aren't sent. */
-const untouched = (store: StoreName, v: unknown) => store === 'entries' && !!(v as Entry).sample && (v as Entry).updatedAt === (v as Entry).createdAt
+/** Starter entries and foods nobody has touched are the same on every device, so they aren't sent. */
+const untouched = (store: StoreName, v: unknown) => (store === 'entries' || store === 'foods') && !!(v as Entry).sample && (v as Entry).updatedAt === (v as Entry).createdAt
 
 function track(store: StoreName, key: string, value: unknown) {
   if (!state.auth) return
@@ -396,6 +396,7 @@ async function fetchMissingPhotos(): Promise<boolean> {
     for (const p of e.photos) want.add(p.id)
     for (const l of e.links) if (l.cover) want.add(l.cover)
   }
+  for (const f of await db.getAll<Food>('foods')) if (f.photo) want.add(f.photo)
   let got = false
   for (const id of want) {
     if (have.has(id) || (missingPhotos.get(id) ?? 0) > Date.now() - 5 * 60_000) continue

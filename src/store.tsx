@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import * as db from './db'
 import * as sync from './sync'
+import { SEED_FOODS } from './foodSeed'
 import { SEED_ENTRIES, SEED_ROUTINES } from './seed'
-import type { Entry, InboxItem, Route, Routine, RoutineItem, Session, SessionItem, SetLog, Settings } from './types'
+import type { Entry, Food, FoodLog, InboxItem, Route, Routine, RoutineItem, Session, SessionItem, SetLog, Settings } from './types'
 import { deletePhoto, uid } from './util'
 
-const SEED_VERSION = 2
+const SEED_VERSION = 3
 
 const DEFAULT_SETTINGS: Settings = {
   restStrength: 90,
@@ -14,6 +15,7 @@ const DEFAULT_SETTINGS: Settings = {
   busyEquipment: [],
   seedVersion: 0,
   lists: [],
+  kcalGoal: 2000,
 }
 
 export interface Store {
@@ -50,6 +52,13 @@ export interface Store {
   history: (entryId: string) => { session: Session; item: SessionItem }[]
   lastSets: (entryId: string) => SetLog[] | undefined
   reload: () => Promise<void>
+  foods: Food[]
+  food: (id: string) => Food | undefined
+  foodLog: FoodLog[]
+  saveFood: (f: Food) => Promise<void>
+  deleteFood: (id: string) => Promise<void>
+  saveLog: (l: FoodLog) => Promise<void>
+  deleteLog: (id: string) => Promise<void>
 }
 
 const Ctx = createContext<Store | null>(null)
@@ -61,6 +70,8 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
   const [routines, setRoutines] = useState<Routine[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
   const [inbox, setInbox] = useState<InboxItem[]>([])
+  const [foods, setFoods] = useState<Food[]>([])
+  const [foodLog, setFoodLog] = useState<FoodLog[]>([])
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [active, setActive] = useState<Session | undefined>()
   const [stack, setStack] = useState<Route[]>([initialRoute])
@@ -81,20 +92,30 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
       }
       for (const r of await db.getAll<Routine>('routines')) if (r.sample) await db.del('routines', r.id)
       for (const r of SEED_ROUTINES) await db.put('routines', r.id, { ...r, updatedAt: now })
+      const oldFoods = new Map((await db.getAll<Food>('foods')).map((f) => [f.id, f]))
+      for (const f of SEED_FOODS) {
+        const old = oldFoods.get(f.id)
+        if (!old) await db.put('foods', f.id, { ...f, createdAt: now, updatedAt: now })
+        else if (old.sample && old.updatedAt === old.createdAt) await db.put('foods', f.id, { ...f, photo: old.photo, createdAt: old.createdAt, updatedAt: old.createdAt })
+      }
       s = { ...s, seedVersion: SEED_VERSION }
       await db.put('meta', 'settings', s)
     }
-    const [es, rs, ss, ib, act] = await Promise.all([
+    const [es, rs, ss, ib, act, fs, fl] = await Promise.all([
       db.getAll<Entry>('entries'),
       db.getAll<Routine>('routines'),
       db.getAll<Session>('sessions'),
       db.getAll<InboxItem>('inbox'),
       db.get<Session>('meta', 'active'),
+      db.getAll<Food>('foods'),
+      db.getAll<FoodLog>('foodlog'),
     ])
     setEntries(es.sort((a, b) => a.name.localeCompare(b.name)))
     setRoutines(rs)
     setSessions(ss.sort((a, b) => b.startedAt - a.startedAt))
     setInbox(ib.sort((a, b) => b.createdAt - a.createdAt))
+    setFoods(fs.sort(byName))
+    setFoodLog(fl.sort((a, b) => a.at - b.at))
     setSettings(s)
     setActive(act ?? undefined)
     setReady(true)
@@ -105,6 +126,35 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
   }, [reload])
 
   const byId = useMemo(() => new Map(entries.map((e) => [e.id, e])), [entries])
+  const foodById = useMemo(() => new Map(foods.map((f) => [f.id, f])), [foods])
+
+  const saveFood = useCallback(async (f: Food) => {
+    const next = { ...f, updatedAt: Date.now() }
+    await db.put('foods', f.id, next)
+    setFoods((list) => [...list.filter((x) => x.id !== f.id), next].sort(byName))
+  }, [])
+
+  // Past days keep their own copy of the label values, so they are unchanged.
+  const deleteFood = useCallback(
+    async (id: string) => {
+      const f = foodById.get(id)
+      if (f?.photo) await deletePhoto(f.photo)
+      await db.del('foods', id)
+      setFoods((list) => list.filter((x) => x.id !== id))
+    },
+    [foodById],
+  )
+
+  const saveLog = useCallback(async (l: FoodLog) => {
+    const next = { ...l, updatedAt: Date.now() }
+    await db.put('foodlog', l.id, next)
+    setFoodLog((list) => [...list.filter((x) => x.id !== l.id), next].sort((a, b) => a.at - b.at))
+  }, [])
+
+  const deleteLog = useCallback(async (id: string) => {
+    await db.del('foodlog', id)
+    setFoodLog((list) => list.filter((x) => x.id !== id))
+  }, [])
 
   const notify = useCallback((msg: string) => {
     setToast(msg)
@@ -296,7 +346,7 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
     settings,
     active,
     route,
-    go: (r) => (['today', 'library', 'history', 'settings'].includes(r.name) ? goTab(r) : go(r)),
+    go: (r) => (['today', 'library', 'health', 'history', 'settings'].includes(r.name) ? goTab(r) : go(r)),
     replace,
     resetTo,
     addToSession,
@@ -320,9 +370,18 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
     history,
     lastSets,
     reload,
+    foods,
+    food: (id) => foodById.get(id),
+    foodLog,
+    saveFood,
+    deleteFood,
+    saveLog,
+    deleteLog,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
+
+const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name)
 
 export function blankEntry(kind: Entry['kind'] = 'strength'): Entry {
   return {

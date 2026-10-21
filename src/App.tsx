@@ -5,6 +5,7 @@ import { Capture } from './screens/Capture'
 import { EntryEdit } from './screens/EntryEdit'
 import { EntryView } from './screens/EntryView'
 import { FormEdit } from './screens/FormEdit'
+import { FoodEdit, FoodList, Health } from './screens/Health'
 import { Hiit } from './screens/Hiit'
 import { History, SessionDetail } from './screens/History'
 import { Library } from './screens/Library'
@@ -18,6 +19,7 @@ import type { Route } from './types'
 const TABS: { name: Route['name']; label: string; icon: string }[] = [
   { name: 'today', label: 'Today', icon: 'today' },
   { name: 'library', label: 'Library', icon: 'library' },
+  { name: 'health', label: 'Health', icon: 'heart' },
   { name: 'history', label: 'History', icon: 'history' },
   { name: 'settings', label: 'Settings', icon: 'settings' },
 ]
@@ -36,6 +38,8 @@ const SECTION: Partial<Record<Route['name'], Route['name']>> = {
   exercises: 'today',
   routines: 'today',
   hiit: 'today',
+  foods: 'health',
+  foodEdit: 'health',
 }
 
 function Screen({ route }: { route: Route }) {
@@ -76,6 +80,12 @@ function Screen({ route }: { route: Route }) {
       return <SessionDetail id={route.id} />
     case 'settings':
       return <Settings />
+    case 'health':
+      return <Health />
+    case 'foods':
+      return <FoodList key={(route.day ?? '') + (route.meal ?? '') + (route.pick ?? '')} day={route.day} meal={route.meal} pick={route.pick} />
+    case 'foodEdit':
+      return <FoodEdit key={route.id ?? 'new'} id={route.id} day={route.day} meal={route.meal} />
   }
 }
 
