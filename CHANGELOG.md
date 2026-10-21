@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New body map: a front and back anatomy figure with each muscle group in its own colour, closer to a gym chart. Tapping works as before; on body-part pages and exercise lists the muscles that don't apply are greyed out, and the shared workout image colours the muscles worked.
 - Health tab: a daily calorie counter with a ring against your goal (2,000 kcal to start; tap Goal to change it), protein, carbs and fat for the day, and what you ate grouped as Breakfast, Lunch, Snacks and Dinner. The count starts again at midnight on the phone; earlier days stay in history (use the arrows to look back or add to a past day).
 - Foods: about 20 starter foods (coffee, roti, rice, dal, rajma, chana, chicken tikka, paneer tikka, eggs, curd, ghee, nuts, fruit) from USDA FoodData Central, with home dishes worked out from those ingredients. Add your own with the brand, a photo of the pack, and the label's values for whatever amount it prints (per 100 g, per 30 g serving, per 200 ml cup...). Log the grams or ml you ate and the app scales it.
 - One tap for repeats: foods you've eaten show as photo tiles under Recent, with last time's amount ready. Tap anything logged to change the amount or meal, or remove it.

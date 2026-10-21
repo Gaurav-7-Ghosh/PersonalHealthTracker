@@ -144,7 +144,7 @@ function paint(g: CanvasRenderingContext2D, s: Session, entry: (id: string) => E
       g.save()
       g.translate(cx - 100 * scale, y + 30)
       g.scale(scale, scale)
-      drawBody(g, side, worked.level, { base: C.raised, muted: C.muted, accent: C.accent })
+      drawBody(g, side, worked.level, { base: C.raised, muted: C.muted, line: C.line })
       g.restore()
       text(side === 'front' ? 'Front' : 'Back', cx, y + 30 + figH + 50, `600 26px ${BODY}`, C.muted, 'center')
     })

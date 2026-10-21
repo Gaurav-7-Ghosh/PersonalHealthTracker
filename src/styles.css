@@ -1423,17 +1423,17 @@ textarea {
   gap: 2px;
   min-width: 0;
 }
-.body-base {
+.body-base path {
   fill: var(--raised);
-  stroke: var(--line);
-  stroke-width: 1;
-}
-.zone path {
-  fill: var(--muted);
-  fill-opacity: 0.22;
   stroke: var(--muted);
-  stroke-opacity: 0.45;
-  stroke-width: 0.8;
+  stroke-opacity: 0.55;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+/* Each muscle keeps its own colour (set on the <g>); the body-coloured stroke leaves a gap between neighbours. */
+.zone path {
+  stroke: var(--raised);
+  stroke-width: 1.3;
   stroke-linejoin: round;
   transition: fill 0.12s, fill-opacity 0.12s;
 }
@@ -1443,15 +1443,13 @@ textarea {
 }
 .zone.tap:hover path,
 .zone.tap:focus-visible path,
-.zone.tap:active path,
-.zone.on path {
-  fill: var(--accent);
-  fill-opacity: 0.8;
-  stroke: var(--accent);
+.zone.tap:active path {
+  stroke: var(--fg);
+  stroke-width: 1.6;
 }
 .zone.off path {
-  fill-opacity: 0.08;
-  stroke-opacity: 0.2;
+  fill: var(--muted);
+  fill-opacity: 0.2;
 }
 .muscle-head {
   display: flex;

@@ -122,7 +122,7 @@ Score = 0.55 x muscle cosine + 0.25 x pattern match + 0.1 x same loading + 0.1 x
 
 ## Body map (`src/components/BodyMap.tsx`)
 
-- **Drawing:** 200 x 420 viewBox, with shapes written for the viewer's left half. Each muscle is a `<g class="zone" data-muscle>` holding the shape and its mirror, so both sides are one tap target.
+- **Drawing:** 200 x 420 viewBox, with shapes written for the viewer's left half. Each muscle is a `<g class="zone" data-muscle>` holding the shape and its mirror, so both sides are one tap target. Every muscle has its own colour (warm at the neck to cool at the calves, like an anatomy chart); greyed-out muscles are the ones not in `only` or `highlight`. Shapes are point lists smoothed with Catmull-Rom (`blob`), and a body-coloured stroke leaves a gap between neighbours.
 - **Hosts:** muscles with no shape of their own (Pec minor, Rotator cuff, Deep core, ...) map to a nearby shape through `HOST`.
 - **Helpers:** `sideOf(muscle)` picks front or back (back for lats, hamstrings and calves). `sidesFor(muscles)` lists the sides a region needs.
 - **Adding a muscle:** add it to `REGIONS` in `taxonomy.ts`, then either draw a shape in `FRONT` or `BACK` or add a `HOST` entry.
