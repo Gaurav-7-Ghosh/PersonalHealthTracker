@@ -1,9 +1,12 @@
 import { Icon } from '../components/Icon'
+import { kcal, total, useToday } from '../nutrition'
 import { useStore } from '../store'
 import { fmtDate, fmtDuration } from '../util'
 
 export function Today() {
-  const { active, routines, sessions, entries, go } = useStore()
+  const { active, routines, sessions, entries, foodLog, settings, go } = useStore()
+  const day = useToday()
+  const eaten = total(foodLog.filter((l) => l.day === day)).kcal
   const bookmarks = entries.filter((e) => e.bookmarkedAt).length
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
   const recent = sessions.slice(0, 3)
@@ -49,6 +52,19 @@ export function Today() {
           {bookmarks > 0 && <span className="badge soft">{bookmarks}</span>}
         </button>
       </div>
+
+      <button type="button" className="card kcal-mini" onClick={() => go({ name: 'health' })}>
+        <span className="list-main">
+          <span className="eyebrow">Calories today</span>
+          <span>
+            <span className="stat-val">{kcal(eaten)}</span> <span className="muted">of {kcal(settings.kcalGoal || 2000)} kcal</span>
+          </span>
+        </span>
+        <span className="mini-bar" aria-hidden="true">
+          <span style={{ width: `${Math.min(100, (eaten / (settings.kcalGoal || 2000)) * 100)}%` }} />
+        </span>
+        <Icon name="next" className="chev" />
+      </button>
 
       {recent.length > 0 && (
         <section className="block">
