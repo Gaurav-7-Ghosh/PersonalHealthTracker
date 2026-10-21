@@ -1,71 +1,94 @@
-// Front and back body figure with one tappable zone per muscle.
+// Front and back anatomy figure with one tappable, coloured zone per muscle.
 // Drawn on a 200 x 420 grid. Shapes are written for the viewer's left half and
 // mirrored, and both halves sit in one <g> so they act as a single target.
+// Colours run warm to cool from the neck down, so neighbouring groups stand apart.
 import { REGIONS } from '../taxonomy'
 
 export type Side = 'front' | 'back'
-type Zone = { muscle: string; d: string }
+type Pt = [number, number]
+type Zone = { muscle: string; d: string; color: string }
 
-// Outline of the left half, top of the neck down to the crotch, smoothed below.
-const OUTLINE: [number, number][] = [
-  [93, 44], [92, 54], [80, 59], [66, 62], [56, 67], [50, 78], [49, 92], [48, 108], [47, 126], [45, 140],
-  [41, 160], [38, 182], [36, 196], [33, 206], [36, 214], [42, 210], [45, 198], [48, 184], [53, 162], [57, 144],
-  [61, 128], [63, 110], [65, 104], [68, 124], [70, 150], [69, 168], [70, 186], [71, 214], [73, 248], [76, 280],
-  [74, 300], [73, 326], [77, 356], [80, 384], [76, 398], [80, 404], [94, 403], [93, 384], [93, 352], [95, 318],
-  [95, 290], [96, 260], [98, 230], [100, 214],
-]
-
-// Catmull-Rom through the points, as cubic Béziers.
-function smooth(pts: [number, number][]) {
+// Catmull-Rom through the points, as cubic Béziers. Closed shapes wrap around.
+function smooth(pts: Pt[], closed = false) {
+  const n = pts.length
+  const at = (i: number) => (closed ? pts[(i + n) % n] : pts[Math.max(0, Math.min(n - 1, i))])
   let d = `M${pts[0][0]} ${pts[0][1]}`
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] ?? pts[i]
-    const [p1, p2] = [pts[i], pts[i + 1]]
-    const p3 = pts[i + 2] ?? p2
+  for (let i = 0; i < (closed ? n : n - 1); i++) {
+    const [p0, p1, p2, p3] = [at(i - 1), at(i), at(i + 1), at(i + 2)]
     const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6]
     const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6]
     d += `C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0]} ${p2[1]}`
   }
-  return d
+  return d + (closed ? 'Z' : '')
 }
-const mirrorPts = (pts: [number, number][]) => pts.map(([x, y]) => [200 - x, y] as [number, number])
-const SILHOUETTE = smooth([...OUTLINE, ...mirrorPts(OUTLINE).reverse()]) + 'Z'
+const blob = (pts: Pt[]) => smooth(pts, true)
+const mirrorPts = (pts: Pt[]) => pts.map(([x, y]) => [200 - x, y] as Pt)
+const whole = (half: Pt[]) => smooth([...half, ...mirrorPts(half).reverse()]) + 'Z'
+
+// Left half of the body, chin down the neck, out along the arm and hand, then down the leg to the crotch.
+const OUTLINE: Pt[] = [
+  [93, 40], [92, 50], [84, 56], [74, 60], [64, 63], [56, 68], [51, 77], [49, 90], [48, 104], [47, 118],
+  [45, 130], [42, 142], [39, 160], [37, 178], [36, 190], [33, 198], [32, 210], [35, 222], [40, 226], [44, 221],
+  [45, 208], [47, 196], [50, 180], [54, 160], [57, 143], [60, 130], [62, 116], [64, 104], [66, 99], [68, 110],
+  [71, 128], [73, 146], [71, 160], [69, 174], [68, 192], [69, 214], [71, 240], [74, 262], [76, 282], [74, 296],
+  [72, 314], [74, 334], [77, 356], [80, 376], [79, 388], [76, 398], [80, 405], [90, 406], [96, 403], [95, 392],
+  [94, 380], [93, 358], [94, 336], [95, 316], [93, 298], [94, 284], [96, 262], [97, 236], [98, 218], [100, 210],
+]
+const SILHOUETTE = whole(OUTLINE)
+const HEAD = whole([[100, 9], [91, 11], [86, 20], [86, 32], [90, 41], [96, 46], [100, 47]])
+const EAR = blob([[87, 25], [84, 25], [83, 30], [85, 35], [88, 34]])
+
+const RED = '#e5484d'
+const VERMILION = '#f0613a'
+const ORANGE = '#f7852e'
+const AMBER = '#f5a524'
+const YELLOW = '#f2c418'
+const LIME = '#8cc63f'
+const TEAL = '#1fa88e'
+const AZURE = '#2196d3'
+const BLUE = '#3b6fe0'
+const INDIGO = '#5b4fd8'
+const VIOLET = '#8746d2'
+const MAGENTA = '#b83ec2'
+
+const SIDE_DELT: Zone = { muscle: 'Side delt', color: VERMILION, d: blob([[62, 64], [55, 69], [51, 78], [50, 90], [53, 98], [56, 88], [58, 75]]) }
+const FOREARMS: Zone = { muscle: 'Forearms', color: LIME, d: blob([[50, 136], [44, 147], [40, 164], [38, 184], [46, 186], [51, 170], [56, 152], [58, 138]]) }
 
 const FRONT: Zone[] = [
-  { muscle: 'Neck flexors', d: 'M94 47Q97 52 98 60L92 58Q92 52 94 47Z' },
-  { muscle: 'Upper traps', d: 'M91 56L91 60L76 62Q84 58 91 56Z' },
-  { muscle: 'Side delt', d: 'M60 66Q51 72 50 86Q51 93 54 95Q54 80 61 70Z' },
-  { muscle: 'Front delt', d: 'M63 68Q56 80 57 96Q63 90 67 80Q70 70 77 64Q68 63 63 68Z' },
-  { muscle: 'Upper chest', d: 'M98 64L80 64Q71 68 69 77L98 78Z' },
-  { muscle: 'Mid chest', d: 'M98 80L68 79Q66 87 68 94L98 92Z' },
-  { muscle: 'Lower chest', d: 'M98 94L69 96Q74 106 86 107Q94 107 98 102Z' },
-  { muscle: 'Serratus anterior', d: 'M67 101L72 106L72 116L69 120Q66 110 67 101Z' },
-  { muscle: 'Biceps', d: 'M56 98Q50 112 51 130Q55 138 61 132Q65 116 64 102Z' },
-  { muscle: 'Forearms', d: 'M49 140Q43 156 40 178Q43 184 47 182Q54 164 57 144Q53 138 49 140Z' },
-  { muscle: 'Upper abs', d: 'M99 110L88 110Q86 121 87 133L99 133Z' },
-  { muscle: 'Lower abs', d: 'M99 136L87 136Q87 158 92 172L99 175Z' },
-  { muscle: 'Obliques', d: 'M84 109L75 112Q71 132 73 156Q78 166 86 170Q83 140 84 109Z' },
-  { muscle: 'Hip flexors', d: 'M75 172L86 174L93 190L84 197Q78 186 75 172Z' },
-  { muscle: 'Adductors', d: 'M95 196L99 205L98 240L93 250Q89 222 95 196Z' },
-  { muscle: 'Quads', d: 'M74 190Q70 230 77 274Q85 282 92 275Q95 250 91 220L82 200Z' },
-  { muscle: 'Tibialis', d: 'M76 300Q73 324 77 352L81 352Q80 324 83 300Z' },
-  { muscle: 'Calves', d: 'M87 300Q93 316 91 338L86 338Q85 318 86 300Z' },
+  { muscle: 'Neck flexors', color: RED, d: blob([[93, 40], [96, 45], [99, 56], [97, 59], [93, 50]]) },
+  { muscle: 'Upper traps', color: RED, d: blob([[91, 48], [91, 55], [84, 59], [72, 62], [81, 55]]) },
+  SIDE_DELT,
+  { muscle: 'Front delt', color: VERMILION, d: blob([[72, 62], [64, 64], [59, 72], [57, 84], [58, 96], [63, 92], [67, 80], [73, 70], [78, 64]]) },
+  { muscle: 'Upper chest', color: ORANGE, d: blob([[98, 62], [86, 62], [78, 65], [72, 72], [70, 78], [98, 78]]) },
+  { muscle: 'Mid chest', color: ORANGE, d: blob([[98, 80], [70, 80], [68, 88], [70, 95], [98, 94]]) },
+  { muscle: 'Lower chest', color: ORANGE, d: blob([[98, 96], [71, 97], [76, 104], [86, 108], [98, 106]]) },
+  { muscle: 'Serratus anterior', color: AMBER, d: blob([[68, 100], [73, 103], [75, 112], [72, 120], [68, 112]]) },
+  { muscle: 'Biceps', color: YELLOW, d: blob([[59, 98], [52, 104], [49, 116], [50, 128], [55, 134], [61, 128], [63, 112]]) },
+  FOREARMS,
+  { muscle: 'Upper abs', color: TEAL, d: blob([[98, 110], [89, 110], [87, 122], [88, 134], [98, 134]]) },
+  { muscle: 'Lower abs', color: TEAL, d: blob([[98, 137], [88, 137], [88, 152], [91, 166], [98, 176]]) },
+  { muscle: 'Obliques', color: TEAL, d: blob([[85, 110], [76, 112], [73, 126], [73, 146], [77, 160], [86, 168], [85, 140]]) },
+  { muscle: 'Hip flexors', color: AZURE, d: blob([[75, 164], [86, 172], [92, 186], [89, 196], [80, 190], [73, 176]]) },
+  { muscle: 'Adductors', color: BLUE, d: blob([[95, 194], [99, 204], [99, 230], [95, 250], [93, 228], [92, 208]]) },
+  { muscle: 'Quads', color: INDIGO, d: blob([[72, 184], [69, 206], [71, 236], [75, 262], [82, 278], [90, 276], [94, 256], [93, 228], [88, 204], [79, 190]]) },
+  { muscle: 'Tibialis', color: VIOLET, d: blob([[75, 292], [72, 314], [75, 340], [80, 356], [83, 330], [85, 296]]) },
+  { muscle: 'Calves', color: MAGENTA, d: blob([[87, 294], [94, 306], [94, 332], [90, 344], [86, 320]]) },
 ]
 
 const BACK: Zone[] = [
-  { muscle: 'Upper traps', d: 'M98 46L93 47L91 56Q82 60 74 63L98 74Z' },
-  { muscle: 'Side delt', d: 'M60 66Q51 72 50 86Q51 93 54 95Q54 80 61 70Z' },
-  { muscle: 'Rear delt', d: 'M63 68Q56 80 57 96Q63 90 67 80Q70 70 74 65Q68 63 63 68Z' },
-  { muscle: 'Mid back', d: 'M98 76L74 66Q71 76 75 86L98 98Z' },
-  { muscle: 'Lower traps', d: 'M98 100L84 92L93 122L98 124Z' },
-  { muscle: 'Lats', d: 'M75 88Q67 98 69 116Q73 142 86 156L93 142Q86 112 81 94Z' },
-  { muscle: 'Triceps', d: 'M56 98Q50 112 51 130Q55 138 61 132Q65 116 64 102Z' },
-  { muscle: 'Forearms', d: 'M49 140Q43 156 40 178Q43 184 47 182Q54 164 57 144Q53 138 49 140Z' },
-  { muscle: 'Lower back', d: 'M99 127L93 128Q89 150 91 170L99 172Z' },
-  { muscle: 'Glute med', d: 'M71 166Q68 176 70 186Q74 178 86 173L88 166Q80 164 71 166Z' },
-  { muscle: 'Glute max', d: 'M98 177L90 177Q75 186 74 204Q80 216 98 213Z' },
-  { muscle: 'Hamstrings', d: 'M74 218Q71 248 78 278L92 280Q96 250 97 220Z' },
-  { muscle: 'Calves', d: 'M76 298Q70 318 76 342Q84 348 90 338Q94 314 91 298Z' },
+  { muscle: 'Upper traps', color: RED, d: blob([[99, 44], [93, 46], [91, 55], [80, 59], [70, 63], [84, 70], [99, 82]]) },
+  SIDE_DELT,
+  { muscle: 'Rear delt', color: VERMILION, d: blob([[70, 63], [63, 65], [58, 74], [57, 88], [60, 96], [65, 86], [70, 74], [74, 66]]) },
+  { muscle: 'Mid back', color: ORANGE, d: blob([[99, 84], [80, 70], [74, 66], [76, 80], [86, 92], [99, 100]]) },
+  { muscle: 'Lower traps', color: AMBER, d: blob([[99, 102], [86, 94], [90, 110], [99, 128]]) },
+  { muscle: 'Lats', color: ORANGE, d: blob([[76, 84], [70, 96], [70, 116], [74, 136], [84, 152], [92, 140], [90, 118], [86, 98]]) },
+  { muscle: 'Triceps', color: YELLOW, d: blob([[59, 98], [52, 104], [49, 116], [50, 128], [55, 134], [61, 128], [63, 112]]) },
+  FOREARMS,
+  { muscle: 'Lower back', color: TEAL, d: blob([[99, 130], [92, 124], [90, 144], [91, 164], [99, 168]]) },
+  { muscle: 'Glute med', color: AZURE, d: blob([[71, 160], [68, 172], [70, 184], [78, 176], [88, 170], [86, 162]]) },
+  { muscle: 'Glute max', color: BLUE, d: blob([[99, 172], [88, 172], [76, 182], [72, 198], [78, 212], [90, 216], [99, 212]]) },
+  { muscle: 'Hamstrings', color: VIOLET, d: blob([[72, 218], [70, 244], [74, 270], [80, 282], [86, 274], [92, 280], [96, 266], [97, 244], [97, 222]]) },
+  { muscle: 'Calves', color: MAGENTA, d: blob([[75, 294], [71, 312], [73, 334], [80, 346], [87, 342], [92, 326], [93, 306], [89, 294]]) },
 ]
 
 const ZONES: Record<Side, Zone[]> = { front: FRONT, back: BACK }
@@ -108,7 +131,7 @@ export function BodyMap({
 }: {
   side: Side
   onPick?: (muscle: string) => void
-  /** Muscles drawn in the accent colour. */
+  /** Muscles to pick out; the rest are greyed out. */
   highlight?: string[]
   /** When set, only these muscles can be tapped; the rest are greyed out. */
   only?: string[]
@@ -119,16 +142,21 @@ export function BodyMap({
   const allowed = only && new Set(only.map(hostOf))
   return (
     <svg className={className} viewBox="0 0 200 420" role="group" aria-label={label ?? `${side === 'front' ? 'Front' : 'Back'} of the body`}>
-      <circle className="body-base" cx="100" cy="26" r="17" />
-      <path className="body-base" d={SILHOUETTE} />
+      <g className="body-base">
+        <path d={SILHOUETTE} />
+        <path d={HEAD} />
+        <path d={EAR} />
+        <path d={EAR} transform={MIRROR} />
+      </g>
       {ZONES[side].map((z) => {
-        const off = allowed && !allowed.has(z.muscle)
-        const tappable = onPick && !off
+        const off = (allowed && !allowed.has(z.muscle)) || (lit.size > 0 && !lit.has(z.muscle))
+        const tappable = onPick && !(allowed && !allowed.has(z.muscle))
         return (
           <g
             key={z.muscle}
             className={'zone' + (lit.has(z.muscle) ? ' on' : '') + (off ? ' off' : '') + (tappable ? ' tap' : '')}
             data-muscle={z.muscle}
+            fill={z.color}
             role={tappable ? 'button' : undefined}
             aria-label={tappable ? z.muscle : undefined}
             tabIndex={tappable ? 0 : undefined}
@@ -146,26 +174,28 @@ export function BodyMap({
 }
 
 /** Draws one side of the figure onto a canvas (for the shareable workout image). level: 1 primary, 0.5 secondary. */
-export function drawBody(g: CanvasRenderingContext2D, side: Side, level: Map<string, number>, colors: { base: string; muted: string; accent: string }) {
+export function drawBody(g: CanvasRenderingContext2D, side: Side, level: Map<string, number>, colors: { base: string; muted: string; line: string }) {
   g.save()
   g.fillStyle = colors.base
-  g.beginPath()
-  g.arc(100, 26, 17, 0, Math.PI * 2)
-  g.fill()
-  g.fill(new Path2D(SILHOUETTE))
+  g.strokeStyle = colors.line
+  g.lineWidth = 1
+  g.lineJoin = 'round'
+  for (const d of [SILHOUETTE, HEAD]) {
+    g.fill(new Path2D(d))
+    g.stroke(new Path2D(d))
+  }
   for (const z of ZONES[side]) {
     const v = level.get(z.muscle) ?? 0
     const p = new Path2D(z.d)
     for (const mirrored of [false, true]) {
       g.save()
       if (mirrored) g.setTransform(g.getTransform().translate(200, 0).scale(-1, 1))
-      g.globalAlpha = v ? 0.35 + 0.55 * v : 0.22
-      g.fillStyle = v ? colors.accent : colors.muted
+      g.globalAlpha = v ? 0.45 + 0.55 * v : 0.2
+      g.fillStyle = v ? z.color : colors.muted
       g.fill(p)
-      g.globalAlpha = v ? 1 : 0.45
-      g.strokeStyle = v ? colors.accent : colors.muted
-      g.lineWidth = 0.8
-      g.lineJoin = 'round'
+      g.globalAlpha = 1
+      g.strokeStyle = colors.base
+      g.lineWidth = 1.2
       g.stroke(p)
       g.restore()
     }

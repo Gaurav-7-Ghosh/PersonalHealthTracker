@@ -60,6 +60,7 @@ See [CHANGELOG.md](../CHANGELOG.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [FLO
 - Fix: the Home Screen app starts below the status bar and Dynamic Island.
 - Fix: sheets now open above the tab bar on every screen.
 - Health tab with daily calorie tracking: starter foods, your own branded foods with a pack photo, logging by grams, a daily counter that turns over at midnight, history by day. See flow 11 in [FLOWS.md](FLOWS.md).
+- Body map redrawn as a coloured front and back anatomy figure (each muscle group its own colour), in the style of a reference chart Gaurav shared; the drawing is original.
 - Release these as 0.2.0 when ready (see Releases in the README).
 
 ## Deploy setup
