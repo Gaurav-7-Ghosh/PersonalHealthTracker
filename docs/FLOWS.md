@@ -160,6 +160,7 @@ flowchart TD
 - **Code:** `screens/Health.tsx` and `nutrition.ts`; starter foods in `foodSeed.ts`.
 - **The day:** `useToday()` gives the local `YYYY-MM-DD`; it sets a timer for the next midnight and re-checks when the app returns to the foreground, so the counter starts again at 12 am. The arrows step through past days; the day you look at is kept in a module variable, so adding to yesterday and coming back stays on yesterday.
 - **Label values:** a food keeps exactly what the pack prints, per whatever amount (`per` + `unit`). FoodEdit shows the per-100 g equivalent as a check. A log copies those values and stores the grams eaten; `scale()` does the maths.
+- **Pieces:** unit `pc` is for things eaten whole (a Kathi roll). Switching to it sets "Values per" to 1, hides the usual portion, and the amount steps by ½ with 0.5 / 1 / 2 / 3 chips. `fmtAmount` shows "1 piece" or "2 pieces".
 - **Repeats:** Recent lists the last 8 different foods eaten, with their photos. The amount sheet starts at last time's amount, else the food's portion, else its label amount.
 - **Brands:** the same name with two brands are two foods; FoodEdit warns when name and brand both match an existing food.
 - **Goal:** `settings.kcalGoal` (2,000 by default), set from the Goal link. Today shows a Calories today card.
