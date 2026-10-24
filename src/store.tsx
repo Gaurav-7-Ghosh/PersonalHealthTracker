@@ -279,7 +279,7 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
       const regions = [...new Set(items.flatMap((i) => byId.get(i.entryId)?.regions.slice(0, 1) ?? []))]
       if (regions.length) name = regions.slice(0, 3).join(' + ')
     }
-    const done: Session = { ...active, name, endedAt: Date.now(), items }
+    const done: Session = { ...active, name, endedAt: Date.now(), items, restEnd: undefined }
     setActive(undefined)
     persistActive(undefined)
     if (done.items.length || done.hiit) await saveSession(done)
@@ -382,6 +382,11 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
 }
 
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name)
+
+/** Rest between sets for an exercise: its own setting, else the Settings default for its kind. */
+export function entryRest(e: Pick<Entry, 'kind' | 'rest'>, settings: Pick<Settings, 'restStrength' | 'restMobility'>): number {
+  return e.rest ?? (e.kind === 'strength' ? settings.restStrength : settings.restMobility)
+}
 
 export function blankEntry(kind: Entry['kind'] = 'strength'): Entry {
   return {

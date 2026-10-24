@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Rest timer per exercise: tap the Rest chip under the exercise name during a workout to pick 30 s to 5 min, or type any number of seconds. It applies to that exercise for the workout, and "Use every time" makes it that exercise's usual rest. You can also set it when creating or editing an exercise. Exercises without their own rest use the Settings defaults as before.
+- The rest timer keeps the right time if you lock the phone, switch apps or reload, and shows "Rest finished … ago" if it ended while you were away (an iPhone web app can't beep in the background). There's now a −15 s button next to +15 s.
 - Foods by the piece: pick "piece" as the unit for things you eat whole (a Kathi roll, a samosa). Enter the calories for 1 piece and log 1, 2 or ½.
 - New body map: a front and back anatomy figure with each muscle group in its own colour, closer to a gym chart. Tapping works as before; on body-part pages and exercise lists the muscles that don't apply are greyed out, and the shared workout image colours the muscles worked.
 - Health tab: a daily calorie counter with a ring against your goal (2,000 kcal to start; tap Goal to change it), protein, carbs and fat for the day, and what you ate grouped as Breakfast, Lunch, Snacks and Dinner. The count starts again at midnight on the phone; earlier days stay in history (use the arrows to look back or add to a past day).

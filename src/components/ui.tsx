@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { KINDS, kindLabel } from '../taxonomy'
 import type { Entry, Kind } from '../types'
-import { photoUrl, uid, whenPhotoArrives } from '../util'
+import { fmtRest, photoUrl, uid, whenPhotoArrives } from '../util'
 import { Icon } from './Icon'
 
 export function TopBar({ title, sub, right, onBack }: { title?: string; sub?: string; right?: React.ReactNode; onBack?: () => void }) {
@@ -159,6 +159,34 @@ export function Stepper({
           <Icon name="plus" size={20} />
         </button>
       </div>
+    </div>
+  )
+}
+
+const REST_PRESETS = [30, 45, 60, 90, 120, 180, 240, 300]
+
+/**
+ * Pick a rest between sets: quick chips from 30 s to 5 min, or any value typed in seconds.
+ * With `fallback`, a Default chip clears the value (undefined) and shows what the default is.
+ */
+export function RestPicker({ value, onChange, fallback }: { value: number | undefined; onChange: (v: number | undefined) => void; fallback?: number }) {
+  const shown = value ?? fallback ?? 90
+  return (
+    <div className="rest-picker">
+      <div className="chips wrap">
+        {fallback !== undefined && (
+          <Chip on={value === undefined} onClick={() => onChange(undefined)}>
+            Default · {fmtRest(fallback)}
+          </Chip>
+        )}
+        {REST_PRESETS.map((s) => (
+          <Chip key={s} on={value === s} onClick={() => onChange(s)}>
+            {fmtRest(s)}
+          </Chip>
+        ))}
+      </div>
+      <Stepper label="Rest" unit="s" step={15} min={5} value={shown} onChange={(v) => onChange(Math.min(3600, Math.max(5, Math.round(v))))} />
+      <span className="muted small">{fmtRest(shown)} between sets</span>
     </div>
   )
 }
