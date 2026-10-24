@@ -65,6 +65,8 @@ export interface Entry {
   /** Ids of the named lists this entry is in. */
   lists?: string[]
   pinnedSwaps: string[]
+  /** Rest between sets in seconds; unset uses the strength or mobility default from Settings. */
+  rest?: number
   sample?: boolean
   createdAt: number
   updatedAt: number
@@ -76,6 +78,8 @@ export interface RoutineItem {
   reps?: number
   weight?: number
   hold?: number
+  /** Rest between sets in seconds for this exercise in this plan or session; overrides Entry.rest. */
+  rest?: number
 }
 
 export type RoutineType = 'gym' | 'mobility' | 'hiit'
@@ -114,6 +118,8 @@ export interface Session {
   endedAt?: number
   items: SessionItem[]
   current: number
+  /** When the running rest ends (epoch ms). Kept on the session so it survives leaving the screen, locking the phone or a reload. */
+  restEnd?: number
   hiit?: { work: number; rest: number; rounds: number; roundsDone: number; seconds: number }
 }
 

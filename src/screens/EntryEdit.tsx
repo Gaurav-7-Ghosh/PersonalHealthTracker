@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { LinkThumb } from '../components/LinkThumb'
-import { Chip, Confirm, Photo, TopBar } from '../components/ui'
-import { blankEntry, useStore } from '../store'
+import { Chip, Confirm, Photo, RestPicker, TopBar } from '../components/ui'
+import { blankEntry, entryRest, useStore } from '../store'
 import { EQUIPMENT, KINDS, LINK_LABELS, MEASURES, NOTE_LABELS, PATTERNS, POSITIONS, REGIONS, defaultMeasure } from '../taxonomy'
 import type { Entry, Kind, PhotoPosition, Role } from '../types'
 import { deletePhoto, fetchLinkInfo, resizeImage, savePhoto, uid } from '../util'
@@ -24,7 +24,7 @@ export function EntryEdit({
   equipment?: string
   returnBack?: boolean
 }) {
-  const { entry, saveEntry, deleteEntry, back, replace, go, notify } = useStore()
+  const { entry, saveEntry, deleteEntry, back, replace, go, notify, settings } = useStore()
   const original = id ? entry(id) : undefined
   const [e, setE] = useState<Entry>(() => {
     if (original) return original
@@ -135,6 +135,11 @@ export function EntryEdit({
             </Chip>
           ))}
         </div>
+      </div>
+
+      <div className="field">
+        <span className="label">Rest between sets</span>
+        <RestPicker value={e.rest} fallback={entryRest({ kind: e.kind }, settings)} onChange={(rest) => set({ rest })} />
       </div>
 
       <section className="block">

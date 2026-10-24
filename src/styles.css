@@ -1106,6 +1106,31 @@ textarea {
   color: var(--fg);
   font-weight: 600;
 }
+.target-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rest-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+}
+.rest-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .rest {
   display: flex;
   align-items: center;
