@@ -154,7 +154,8 @@ export interface Nutrients {
   sodium?: number
 }
 
-export type FoodUnit = 'g' | 'ml'
+/** Grams, millilitres, or pieces for things eaten whole (1 Kathi roll, 1 samosa). */
+export type FoodUnit = 'g' | 'ml' | 'pc'
 export type Meal = 'breakfast' | 'lunch' | 'snack' | 'dinner'
 
 /**

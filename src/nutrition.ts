@@ -1,6 +1,6 @@
 // Daily calorie tracking helpers: local days, scaling label values to what you ate, and totals.
 import { useEffect, useState } from 'react'
-import type { Food, FoodLog, Meal, Nutrients } from './types'
+import type { Food, FoodLog, FoodUnit, Meal, Nutrients } from './types'
 
 export const NUTRIENTS: { key: keyof Nutrients; label: string; unit: string }[] = [
   { key: 'kcal', label: 'Calories', unit: 'kcal' },
@@ -97,5 +97,12 @@ export function total(logs: FoodLog[]): Required<Nutrients> {
 export const kcal = (n: number) => Math.round(n).toLocaleString()
 /** Grams to one decimal under 10, whole numbers above. */
 export const grams = (n: number) => (n < 10 ? String(Math.round(n * 10) / 10) : String(Math.round(n)))
+
+/** "15 g", "200 ml", "1 piece", "1.5 pieces". */
+export function fmtAmount(amount: number, unit: FoodUnit): string {
+  const n = grams(amount)
+  if (unit !== 'pc') return `${n} ${unit}`
+  return `${n} ${amount === 1 ? 'piece' : 'pieces'}`
+}
 
 export const foodTitle = (f: { name: string; brand?: string }) => (f.brand ? `${f.name} · ${f.brand}` : f.name)

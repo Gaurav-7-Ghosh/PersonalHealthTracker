@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Chip, Confirm, Empty, Photo, Sheet, Stepper, TopBar } from '../components/ui'
 import { useStore } from '../store'
-import { MEALS, NUTRIENTS, dayLabel, foodNutrients, foodTitle, grams, kcal, logNutrients, mealLabel, mealNow, shiftDay, total, useToday } from '../nutrition'
+import { MEALS, NUTRIENTS, dayLabel, fmtAmount, foodNutrients, foodTitle, grams, kcal, logNutrients, mealLabel, mealNow, shiftDay, total, useToday } from '../nutrition'
 import type { Food, FoodLog, FoodUnit, Meal, Nutrients } from '../types'
 import { deletePhoto, resizeImage, savePhoto, uid } from '../util'
 
@@ -115,7 +115,7 @@ export function Health() {
                           <span className="list-name">{l.name}</span>
                           <span className="list-sub">
                             {l.brand ? `${l.brand} · ` : ''}
-                            {grams(l.amount)} {l.unit}
+                            {fmtAmount(l.amount, l.unit)}
                           </span>
                         </span>
                         <span className="kcal-pill">{kcal(n.kcal)}</span>
@@ -193,7 +193,7 @@ export function FoodThumb({ food, className = 'thumb' }: { food: { name: string;
   )
 }
 
-const QUICK: Record<FoodUnit, number[]> = { g: [10, 15, 30, 50, 100], ml: [50, 100, 200, 250] }
+const QUICK: Record<FoodUnit, number[]> = { g: [10, 15, 30, 50, 100], ml: [50, 100, 200, 250], pc: [0.5, 1, 2, 3] }
 
 /** Log a food, or change one already logged: amount, meal, and a live total. */
 function AmountSheet({ food, log, day, meal, onClose, onDone }: { food?: Food; log?: FoodLog; day: string; meal: Meal; onClose: () => void; onDone?: () => void }) {
@@ -230,12 +230,12 @@ function AmountSheet({ food, log, day, meal, onClose, onDone }: { food?: Food; l
           Protein {grams(n.protein ?? 0)} g · Carbs {grams(n.carbs ?? 0)} g · Fat {grams(n.fat ?? 0)} g
         </div>
       </div>
-      <Stepper label="Amount" unit={unit} step={5} min={0} value={amount} onChange={setAmount} big />
+      <Stepper label="Amount" unit={unit} step={unit === 'pc' ? 0.5 : 5} min={0} value={amount} onChange={setAmount} big />
       <div className="chips wrap">
         {serving && (
           <>
             <Chip on={amount === serving.amount} onClick={() => setAmount(serving.amount)}>
-              {serving.label} · {serving.amount} {unit}
+              {serving.label} · {fmtAmount(serving.amount, unit)}
             </Chip>
             <Chip on={amount === serving.amount * 2} onClick={() => setAmount(serving.amount * 2)}>
               2 × {serving.label.replace(/^1\s+/, '')}
@@ -244,11 +244,11 @@ function AmountSheet({ food, log, day, meal, onClose, onDone }: { food?: Food; l
         )}
         {QUICK[unit].map((q) => (
           <Chip key={q} on={amount === q && serving?.amount !== q} onClick={() => setAmount(q)}>
-            {q} {unit}
+            {fmtAmount(q, unit)}
           </Chip>
         ))}
       </div>
-      {last && !log && <p className="muted small">Last time: {grams(last.amount)} {unit}</p>}
+      {last && !log && <p className="muted small">Last time: {fmtAmount(last.amount, unit)}</p>}
       <div className="chips wrap" aria-label="Meal">
         {MEALS.map((x) => (
           <Chip key={x.id} on={m === x.id} onClick={() => setM(x.id)}>
@@ -357,7 +357,7 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
                   <span className="list-name">{f.name}</span>
                   <span className="list-sub">
                     {f.brand ? `${f.brand} · ` : ''}
-                    {kcal(f.n.kcal)} kcal per {f.per} {f.unit}
+                    {kcal(f.n.kcal)} kcal per {fmtAmount(f.per, f.unit)}
                   </span>
                 </span>
                 {!picking && <Icon name="next" className="chev" />}
@@ -420,6 +420,9 @@ export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const set = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }))
+  // Pieces are almost always "per 1"; weights and volumes "per 100". Only swap the default, not a typed amount.
+  const switchUnit = (u: FoodUnit) =>
+    setD((x) => ({ ...x, unit: u, per: u === 'pc' && x.per === '100' ? '1' : u !== 'pc' && x.unit === 'pc' && x.per === '1' ? '100' : x.per }))
   const setN = (k: keyof Nutrients, v: string) => /^\d*([.,]\d*)?$/.test(v) && setD((x) => ({ ...x, n: { ...x.n, [k]: v } }))
 
   const addPhoto = async (file: File | undefined) => {
@@ -449,7 +452,7 @@ export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: 
     if (kcalVal === undefined) return notify('Enter the calories from the label')
     const n = { kcal: kcalVal } as Nutrients
     for (const { key } of NUTRIENTS) if (key !== 'kcal' && toNum(d.n[key]) !== undefined) n[key] = toNum(d.n[key])
-    const servingAmount = toNum(d.servingAmount)
+    const servingAmount = d.unit === 'pc' ? undefined : toNum(d.servingAmount)
     const next: Food = {
       id: d.id,
       name,
@@ -515,14 +518,18 @@ export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: 
           <label htmlFor="food-per">Values per</label>
           <input id="food-per" inputMode="decimal" value={d.per} onChange={(x) => /^\d*([.,]\d*)?$/.test(x.target.value) && set({ per: x.target.value })} />
           <div className="segmented" role="tablist" aria-label="Unit">
-            {(['g', 'ml'] as FoodUnit[]).map((u) => (
-              <button key={u} type="button" role="tab" aria-selected={d.unit === u} onClick={() => set({ unit: u })}>
-                {u}
+            {(['g', 'ml', 'pc'] as FoodUnit[]).map((u) => (
+              <button key={u} type="button" role="tab" aria-selected={d.unit === u} onClick={() => switchUnit(u)}>
+                {u === 'pc' ? 'piece' : u}
               </button>
             ))}
           </div>
         </div>
-        <p className="muted small">Type the amount printed above the values, for example 100 g or a 30 g serving. The app works out what you ate from the grams you log.</p>
+        <p className="muted small">
+          {d.unit === 'pc'
+            ? 'For things you eat whole, like a Kathi roll: enter the values for 1 piece, then log how many you had.'
+            : 'Type the amount printed above the values, for example 100 g or a 30 g serving. The app works out what you ate from the grams you log.'}
+        </p>
         <div className="nutri-grid">
           {NUTRIENTS.map(({ key, label, unit }) => (
             <div key={key} className={key === 'sugar' || key === 'satFat' ? 'field nutri sub' : 'field nutri'}>
@@ -533,27 +540,29 @@ export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: 
             </div>
           ))}
         </div>
-        {per && kcalVal !== undefined && per !== 100 && (
+        {per && kcalVal !== undefined && per !== 100 && d.unit !== 'pc' && (
           <p className="muted small">
             That's {kcal((kcalVal * 100) / per)} kcal per 100 {d.unit}.
           </p>
         )}
       </section>
 
-      <section className="block">
-        <h2>Usual portion</h2>
-        <p className="muted small">Optional. Shown as a one-tap amount, for example 1 roti = 40 g.</p>
-        <div className="row-2">
-          <div className="field">
-            <label htmlFor="srv-label">Portion</label>
-            <input id="srv-label" value={d.servingLabel} placeholder="1 handful" onChange={(x) => set({ servingLabel: x.target.value })} />
+      {d.unit !== 'pc' && (
+        <section className="block">
+          <h2>Usual portion</h2>
+          <p className="muted small">Optional. Shown as a one-tap amount, for example 1 roti = 40 g.</p>
+          <div className="row-2">
+            <div className="field">
+              <label htmlFor="srv-label">Portion</label>
+              <input id="srv-label" value={d.servingLabel} placeholder="1 handful" onChange={(x) => set({ servingLabel: x.target.value })} />
+            </div>
+            <div className="field">
+              <label htmlFor="srv-amount">Amount ({d.unit})</label>
+              <input id="srv-amount" inputMode="decimal" value={d.servingAmount} placeholder="25" onChange={(x) => /^\d*([.,]\d*)?$/.test(x.target.value) && set({ servingAmount: x.target.value })} />
+            </div>
           </div>
-          <div className="field">
-            <label htmlFor="srv-amount">Amount ({d.unit})</label>
-            <input id="srv-amount" inputMode="decimal" value={d.servingAmount} placeholder="25" onChange={(x) => /^\d*([.,]\d*)?$/.test(x.target.value) && set({ servingAmount: x.target.value })} />
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {d.source && <p className="muted small">Starter values: {d.source}.</p>}
 
