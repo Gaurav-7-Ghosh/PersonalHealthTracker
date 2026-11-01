@@ -6,7 +6,7 @@ import { SEED_ENTRIES, SEED_ROUTINES } from './seed'
 import type { Entry, Food, FoodLog, InboxItem, Route, Routine, RoutineItem, Session, SessionItem, SetLog, Settings } from './types'
 import { deletePhoto, uid } from './util'
 
-const SEED_VERSION = 4
+const SEED_VERSION = 5
 
 const DEFAULT_SETTINGS: Settings = {
   restStrength: 90,

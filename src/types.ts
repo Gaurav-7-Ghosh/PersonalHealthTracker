@@ -134,6 +134,8 @@ export interface Settings {
   lists: NamedList[]
   /** Daily calorie target shown on the Health screen. */
   kcalGoal: number
+  /** Your own daily limits or targets per nutrient. Missing keys use the defaults in nutrition.ts. */
+  nutrientGoals?: Partial<Record<Exclude<NutrientKey, 'kcal'>, number>>
 }
 
 export interface NamedList {
@@ -142,17 +144,27 @@ export interface NamedList {
   createdAt: number
 }
 
-/** Nutrition for some amount of a food. kcal is required; the rest are optional, as printed on the label. Grams, except sodium in mg. */
+/**
+ * Nutrition for some amount of a food. kcal is required; the rest are optional, as printed on the label.
+ * Grams, except sodium and cholesterol in mg. To add a marker, add it here and to NUTRIENTS in nutrition.ts.
+ */
 export interface Nutrients {
   kcal: number
   protein?: number
   carbs?: number
+  /** Total sugars, natural and added. */
   sugar?: number
+  /** Added sugars, as Indian (FSSAI) labels print them. */
+  addedSugar?: number
+  fibre?: number
   fat?: number
   satFat?: number
-  fibre?: number
+  transFat?: number
+  cholesterol?: number
   sodium?: number
 }
+
+export type NutrientKey = keyof Nutrients
 
 /** Grams, millilitres, pieces for things eaten whole (1 Kathi roll, 1 samosa), or servings of a recipe (1 cup of coffee). */
 export type FoodUnit = 'g' | 'ml' | 'pc' | 'srv'

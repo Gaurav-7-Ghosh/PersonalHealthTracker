@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Chip, Confirm, Sheet, Stepper, TopBar } from '../components/ui'
 import { useStore } from '../store'
-import { MEALS, NUTRIENTS, dayLabel, fmtAmount, foodNutrients, foodTitle, grams, itemAmount, kcal, mealLabel, measuresFor, mixNutrients, mixText, scale } from '../nutrition'
+import { MEALS, NUTRIENTS, dayLabel, fmtAmount, fmtNutrient, foodNutrients, foodTitle, grams, itemAmount, kcal, mealLabel, measuresFor, mixNutrients, mixText, scale } from '../nutrition'
 import type { Food, FoodLog, Meal, IngredientMeasure, Nutrients, RecipeItem } from '../types'
 import { uid } from '../util'
 import { FoodThumb } from './Health'
@@ -120,11 +120,9 @@ function NutrientTable({ n, label }: { n: Nutrients; label: string }) {
       </div>
       <dl className="nutri-list">
         {NUTRIENTS.filter((x) => x.key !== 'kcal' && n[x.key] !== undefined).map((x) => (
-          <div key={x.key} className={x.key === 'sugar' || x.key === 'satFat' ? 'sub' : undefined}>
+          <div key={x.key} className={x.sub ? 'sub' : undefined}>
             <dt>{x.label}</dt>
-            <dd>
-              {grams(n[x.key]!)} {x.unit}
-            </dd>
+            <dd>{fmtNutrient(n[x.key]!, x.unit)}</dd>
           </div>
         ))}
       </dl>

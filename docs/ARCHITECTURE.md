@@ -41,7 +41,7 @@ src/
   taxonomy.ts       regions -> muscles, equipment, movement patterns, labels, positions
   seed.ts           ~80 starter entries (sample: true); no preset routines
   swap.ts           ranking alternatives when equipment is busy
-  nutrition.ts      calorie helpers: local day keys, useToday (midnight turnover), scaling label values, totals, meals
+  nutrition.ts      calorie helpers: local day keys, useToday (midnight turnover), scaling label values, totals, meals, NUTRIENTS (markers and default daily limits)
   foodSeed.ts       ~20 starter foods with their sources (USDA FoodData Central; dishes as estimates)
   snapshot.ts       draws a finished workout as a shareable PNG (canvas)
   sync.ts           optional Supabase sync: sign-in, outbox, pull/push, photo transfer (docs/SYNC.md)
@@ -97,7 +97,7 @@ erDiagram
 - **Ink**: drawings stored as shapes (`pen`, `line`, `arrow`, `text`) in the photo's own pixel space `{w, h}`. They are rendered as an SVG over the image, so they stay sharp and editable. Cropping shifts the marks.
 - **LinkRef**: `label` (for example Proper form), `url`, `title`, `thumb` (YouTube) and `cover` (a photo id you picked, for Instagram or TikTok).
 - **Session**: `items[]` of `{entryId, swappedFrom?, target, sets[]}`, `current`, and an optional `hiit` block. The running session is kept in `meta` under `active` until it is finished.
-- **Food**: `name`, `brand`, `photo` (a photo id of the pack), `unit` (g, ml, pc for things eaten whole, or srv for a recipe's servings), `per` (the amount the label values are for) and `n` (Nutrients: kcal plus optional protein, carbs, sugar, fat, satFat, fibre in g and sodium in mg), an optional `serving` (`{label, amount}`, e.g. 1 roti = 40 g), `source` and `sample` for starter foods, `tsp` (grams or ml in a level teaspoon, for spoon measures), and `recipe` (`{items, servings}`) when the food is made of other foods. A recipe item is `{foodId, name, qty, measure}` with measure g, ml, pc, tsp or tbsp; a recipe's `n` is worked out with `mixNutrients()` for one serving, so it lists, logs and syncs like any other food.
+- **Food**: `name`, `brand`, `photo` (a photo id of the pack), `unit` (g, ml, pc for things eaten whole, or srv for a recipe's servings), `per` (the amount the label values are for) and `n` (Nutrients: kcal plus optional protein, carbs, sugar, addedSugar, fibre, fat, satFat, transFat in g and sodium, cholesterol in mg; `NUTRIENTS` in `nutrition.ts` lists them with default daily limits), an optional `serving` (`{label, amount}`, e.g. 1 roti = 40 g), `source` and `sample` for starter foods, `tsp` (grams or ml in a level teaspoon, for spoon measures), and `recipe` (`{items, servings}`) when the food is made of other foods. A recipe item is `{foodId, name, qty, measure}` with measure g, ml, pc, tsp or tbsp; a recipe's `n` is worked out with `mixNutrients()` for one serving, so it lists, logs and syncs like any other food.
 - **FoodLog**: one thing eaten: `day` (local `YYYY-MM-DD`), `meal` (breakfast, lunch, snack, dinner), `foodId`, `amount` in the food's unit, and a copy of the food's `name`, `brand`, `per` and `base` nutrients at the time, so editing or deleting a food never changes past days. A recipe log also keeps `mix`, the ingredient lines used that time. Totals come from `scale(base, per, amount)`.
 - **Settings**: rest timers, weight step, `kcalGoal`, `busyEquipment`, `seedVersion`, `lists` (your named lists: `{id, name, createdAt}`).
 
@@ -110,7 +110,7 @@ IndexedDB stores (database version 2): `entries`, `routines`, `sessions`, `inbox
 - Navigation is a stack of `Route` objects: `go` pushes, `replace` swaps the top, `back` pops and `resetTo` sets the whole stack. `go` to a tab name resets the stack to that tab. `App.tsx` renders the top route; `SECTION` decides which tab is highlighted. Only the `session` route hides the tab bar.
 - `history(entryId)` returns previous `{session, item}` pairs (newest first) from finished sessions. `lastSets` is the most recent sets.
 - `addToSession(entry)` starts a "Workout" session if none is running, appends the entry (or jumps to it if it is already there and unfinished) and opens the session screen.
-- **Seed migration:** `SEED_VERSION` (currently 4; 3 added starter foods, 4 added instant coffee, water and a starter recipe) in `store.tsx`. When it rises, missing starter entries and foods are added, untouched ones are refreshed, and starter routines are removed. Bump it whenever `seed.ts` changes in a way existing installs should receive.
+- **Seed migration:** `SEED_VERSION` (currently 5; 3 added starter foods, 4 added the new nutrient values, 5 added instant coffee, water and a starter recipe) in `store.tsx`. When it rises, missing starter entries and foods are added, untouched ones are refreshed, and starter routines are removed. Bump it whenever `seed.ts` changes in a way existing installs should receive.
 
 ## Swap ranking (`src/swap.ts`)
 

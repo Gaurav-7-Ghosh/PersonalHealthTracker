@@ -2,9 +2,31 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Chip, Confirm, Empty, Photo, Sheet, Stepper, TopBar } from '../components/ui'
 import { useStore } from '../store'
-import { MEALS, NUTRIENTS, dayLabel, fmtAmount, foodNutrients, foodTitle, grams, kcal, logNutrients, mealLabel, mealNow, mixText, shiftDay, total, useToday } from '../nutrition'
+import {
+  MEALS,
+  NUTRIENTS,
+  defaultGoal,
+  dayLabel,
+  fmtAmount,
+  fmtNutrient,
+  foodNutrients,
+  foodTitle,
+  goalState,
+  grams,
+  kcal,
+  logNutrients,
+  mealLabel,
+  mealNow,
+  mixText,
+  missingCount,
+  nutrientGoal,
+  nutrientInfo,
+  shiftDay,
+  total,
+  useToday,
+} from '../nutrition'
+import type { Food, FoodLog, FoodUnit, Meal, NutrientKey, Nutrients } from '../types'
 import { RecipeAmountSheet } from './Recipe'
-import type { Food, FoodLog, FoodUnit, Meal, Nutrients } from '../types'
 import { deletePhoto, resizeImage, savePhoto, uid } from '../util'
 
 // The day being looked at. Kept outside the screen so adding a food to yesterday and coming back stays on
@@ -17,6 +39,7 @@ export function Health() {
   const [day, setDayState] = useState(() => (viewDay && viewDay < today ? viewDay : today))
   const [editing, setEditing] = useState<FoodLog | null>(null)
   const [goalOpen, setGoalOpen] = useState(false)
+  const [detail, setDetail] = useState<NutrientKey | null>(null)
   const setDay = (d: string) => {
     const next = d >= today ? today : d
     viewDay = next === today ? undefined : next
@@ -73,14 +96,7 @@ export function Health() {
         </div>
       </section>
 
-      <div className="grid-3">
-        {(['protein', 'carbs', 'fat'] as const).map((k) => (
-          <div key={k} className="stat">
-            <div className="eyebrow">{NUTRIENTS.find((n) => n.key === k)!.label}</div>
-            <div className="stat-val">{grams(t[k])} g</div>
-          </div>
-        ))}
-      </div>
+      <NutrientCard logs={logs} t={t} onOpen={setDetail} />
 
       <div className="row-2">
         <button type="button" className="btn primary" onClick={() => go({ name: 'foods', day, meal: day === today ? mealNow() : 'snack' })}>
@@ -134,8 +150,114 @@ export function Health() {
 
       {editing && <AmountSheet key={editing.id} log={editing} day={editing.day} meal={editing.meal} onClose={() => setEditing(null)} />}
 
+      {detail && <NutrientSheet key={detail} nkey={detail} logs={logs} day={day} onClose={() => setDetail(null)} />}
+
       <GoalSheet open={goalOpen} goal={goal} onClose={() => setGoalOpen(false)} onSave={(v) => saveSettings({ kcalGoal: v })} />
     </div>
+  )
+}
+
+// The day card's layout: the big three, then what to keep up, then what to keep down.
+const CARD: NutrientKey[] = ['protein', 'carbs', 'fat', 'fibre', 'sugar', 'addedSugar', 'satFat', 'transFat', 'sodium', 'cholesterol']
+
+/** Every tracked marker for the day against its daily limit or target. Tap one to see where it came from. */
+function NutrientCard({ logs, t, onOpen }: { logs: FoodLog[]; t: Required<Nutrients>; onOpen: (k: NutrientKey) => void }) {
+  const { settings } = useStore()
+  return (
+    <section className="card nutri-card" aria-label="Nutrients">
+      <div className="section-head">
+        <h2>Nutrients</h2>
+        <span className="muted small">Tap one for details</span>
+      </div>
+      <div className="nbars">
+        {CARD.map((k) => {
+          const info = nutrientInfo(k)
+          const goal = nutrientGoal(k, settings)
+          const value = t[k]
+          const state = goalState(info.kind, value, goal)
+          const missing = missingCount(logs, k)
+          const p = goal > 0 ? Math.min(1, value / goal) : 0
+          return (
+            <button key={k} type="button" className={'nbar ' + state} data-testid={'nbar-' + k} aria-label={`${info.short}: ${fmtNutrient(value, info.unit)} of ${fmtNutrient(goal, info.unit)}`} onClick={() => onOpen(k)}>
+              <span className="nbar-top">
+                <span className="nbar-name">{info.short}</span>
+                <span className="nbar-val">{fmtNutrient(value, info.unit)}</span>
+              </span>
+              <span className="nbar-track" aria-hidden="true">
+                <span className="nbar-fill" style={{ width: `${p * 100}%` }} />
+              </span>
+              <span className="nbar-sub">
+                {state === 'over' ? `${fmtNutrient(value - goal, info.unit)} over` : `${info.kind === 'max' ? 'max' : info.kind === 'min' ? 'at least' : 'aim'} ${fmtNutrient(goal, info.unit)}`}
+                {missing > 0 && <span className="nbar-missing"> · {missing} missing</span>}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+/** One marker for the day: which foods it came from, and your own limit for it. */
+function NutrientSheet({ nkey, logs, day, onClose }: { nkey: NutrientKey; logs: FoodLog[]; day: string; onClose: () => void }) {
+  const { settings, saveSettings } = useStore()
+  const info = nutrientInfo(nkey)
+  const goal = nutrientGoal(nkey, settings)
+  const def = defaultGoal(nkey, settings.kcalGoal || 2000)
+  const [v, setV] = useState(goal)
+  const rows = logs
+    .map((l) => ({ l, value: logNutrients(l)[nkey] }))
+    .sort((a, b) => (b.value ?? -1) - (a.value ?? -1))
+  const sum = rows.reduce((a, r) => a + (r.value ?? 0), 0)
+  const state = goalState(info.kind, sum, goal)
+  const step = info.unit === 'mg' ? 50 : goal < 10 ? 0.5 : 5
+  const save = (next: number | undefined) => {
+    const goals = { ...settings.nutrientGoals }
+    if (next === undefined || next === def) delete goals[nkey as keyof typeof goals]
+    else goals[nkey as keyof typeof goals] = next
+    saveSettings({ nutrientGoals: goals })
+    onClose()
+  }
+  return (
+    <Sheet open onClose={onClose} title={info.short}>
+      <div className="amount-preview">
+        <span className={state === 'over' ? 'stat-val big warn-ink' : 'stat-val big'}>{fmtNutrient(sum, info.unit)}</span>
+        <div className="muted small">
+          {dayLabel(day)} · {info.kind === 'max' ? 'limit' : info.kind === 'min' ? 'at least' : 'aim'} {fmtNutrient(goal, info.unit)}
+        </div>
+      </div>
+      {rows.length > 0 ? (
+        <ul className="list compact" aria-label="From">
+          {rows.map(({ l, value }) => (
+            <li key={l.id} className="list-row static">
+              <span className="list-main">
+                <span className="list-name">{l.name}</span>
+                <span className="list-sub">
+                  {mealLabel(l.meal)} · {fmtAmount(l.amount, l.unit)}
+                </span>
+              </span>
+              <span className={value === undefined ? 'muted small' : 'kcal-pill'}>{value === undefined ? 'not on label' : fmtNutrient(value, info.unit)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted small center">Nothing logged on this day.</p>
+      )}
+      <Stepper label={`Daily ${info.kind === 'max' ? 'limit' : info.kind === 'min' ? 'minimum' : 'target'}`} unit={info.unit} step={step} min={0} value={v} onChange={setV} />
+      {info.why && (
+        <p className="muted small">
+          Default {fmtNutrient(def, info.unit)}: {info.why}
+        </p>
+      )}
+      <button type="button" className="btn primary" onClick={() => save(v)}>
+        Save {info.kind === 'max' ? 'limit' : 'goal'}
+      </button>
+      {goal !== def && (
+        <button type="button" className="link-btn" onClick={() => save(undefined)}>
+          Back to the default ({fmtNutrient(def, info.unit)})
+        </button>
+      )}
+    </Sheet>
   )
 }
 
@@ -230,6 +352,14 @@ function AmountSheet({ food, log, day, meal, onClose, onDone }: { food?: Food; l
         <div className="muted small">
           Protein {grams(n.protein ?? 0)} g · Carbs {grams(n.carbs ?? 0)} g · Fat {grams(n.fat ?? 0)} g
         </div>
+        {(['sugar', 'fibre', 'satFat', 'sodium'] as const).some((k) => n[k] !== undefined) && (
+          <div className="muted small">
+            {(['sugar', 'fibre', 'satFat', 'sodium'] as const)
+              .filter((k) => n[k] !== undefined)
+              .map((k) => `${nutrientInfo(k).short} ${fmtNutrient(n[k]!, nutrientInfo(k).unit)}`)
+              .join(' · ')}
+          </div>
+        )}
       </div>
       <Stepper label="Amount" unit={unit} step={unit === 'pc' || unit === 'srv' ? 0.5 : 5} min={0} value={amount} onChange={setAmount} big />
       <div className="chips wrap">
@@ -537,8 +667,8 @@ export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: 
             : 'Type the amount printed above the values, for example 100 g or a 30 g serving. The app works out what you ate from the grams you log.'}
         </p>
         <div className="nutri-grid">
-          {NUTRIENTS.map(({ key, label, unit }) => (
-            <div key={key} className={key === 'sugar' || key === 'satFat' ? 'field nutri sub' : 'field nutri'}>
+          {NUTRIENTS.map(({ key, label, unit, sub }) => (
+            <div key={key} className={sub ? 'field nutri sub' : 'field nutri'}>
               <label htmlFor={'n-' + key}>
                 {label} <span className="muted">({unit})</span>
               </label>
