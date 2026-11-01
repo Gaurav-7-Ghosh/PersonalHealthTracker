@@ -2047,3 +2047,83 @@ p.warn {
   height: 100%;
   background: var(--accent);
 }
+
+/* Nutrients on the Health day card: one bar per marker against its daily limit or target. */
+.nutri-card h2 {
+  margin: 0;
+}
+.nbars {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.nbar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.nbar-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.nbar-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nbar-val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.nbar-track {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.nbar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+.nbar.near .nbar-fill,
+.nbar.over .nbar-fill {
+  background: var(--warn);
+}
+.nbar.over {
+  border-color: var(--warn-ink);
+}
+.nbar.over .nbar-val,
+.nbar.over .nbar-sub {
+  color: var(--warn-ink);
+}
+.nbar-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.nbar-missing {
+  opacity: 0.8;
+}
+.list-row.static {
+  min-height: 48px;
+}
+.warn-ink {
+  color: var(--warn-ink);
+}

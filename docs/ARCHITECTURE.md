@@ -41,7 +41,7 @@ src/
   taxonomy.ts       regions -> muscles, equipment, movement patterns, labels, positions
   seed.ts           ~80 starter entries (sample: true); no preset routines
   swap.ts           ranking alternatives when equipment is busy
-  nutrition.ts      calorie helpers: local day keys, useToday (midnight turnover), scaling label values, totals, meals
+  nutrition.ts      calorie helpers: local day keys, useToday (midnight turnover), scaling label values, totals, meals, NUTRIENTS (markers and default daily limits)
   foodSeed.ts       ~20 starter foods with their sources (USDA FoodData Central; dishes as estimates)
   snapshot.ts       draws a finished workout as a shareable PNG (canvas)
   sync.ts           optional Supabase sync: sign-in, outbox, pull/push, photo transfer (docs/SYNC.md)
@@ -96,7 +96,7 @@ erDiagram
 - **Ink**: drawings stored as shapes (`pen`, `line`, `arrow`, `text`) in the photo's own pixel space `{w, h}`. They are rendered as an SVG over the image, so they stay sharp and editable. Cropping shifts the marks.
 - **LinkRef**: `label` (for example Proper form), `url`, `title`, `thumb` (YouTube) and `cover` (a photo id you picked, for Instagram or TikTok).
 - **Session**: `items[]` of `{entryId, swappedFrom?, target, sets[]}`, `current`, and an optional `hiit` block. The running session is kept in `meta` under `active` until it is finished.
-- **Food**: `name`, `brand`, `photo` (a photo id of the pack), `unit` (g, ml, or pc for things eaten whole), `per` (the amount the label values are for) and `n` (Nutrients: kcal plus optional protein, carbs, sugar, fat, satFat, fibre in g and sodium in mg), an optional `serving` (`{label, amount}`, e.g. 1 roti = 40 g), `source` and `sample` for starter foods.
+- **Food**: `name`, `brand`, `photo` (a photo id of the pack), `unit` (g, ml, or pc for things eaten whole), `per` (the amount the label values are for) and `n` (Nutrients: kcal plus optional protein, carbs, sugar, addedSugar, fibre, fat, satFat, transFat in g and sodium, cholesterol in mg; `NUTRIENTS` in `nutrition.ts` lists them with default daily limits), an optional `serving` (`{label, amount}`, e.g. 1 roti = 40 g), `source` and `sample` for starter foods.
 - **FoodLog**: one thing eaten: `day` (local `YYYY-MM-DD`), `meal` (breakfast, lunch, snack, dinner), `foodId`, `amount` in the food's unit, and a copy of the food's `name`, `brand`, `per` and `base` nutrients at the time, so editing or deleting a food never changes past days. Totals come from `scale(base, per, amount)`.
 - **Settings**: rest timers, weight step, `kcalGoal`, `busyEquipment`, `seedVersion`, `lists` (your named lists: `{id, name, createdAt}`).
 
