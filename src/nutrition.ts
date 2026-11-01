@@ -1,6 +1,6 @@
 // Daily calorie tracking helpers: local days, scaling label values to what you ate, and totals.
 import { useEffect, useState } from 'react'
-import type { Food, FoodLog, FoodUnit, Meal, Nutrients } from './types'
+import type { Food, FoodLog, FoodUnit, Meal, IngredientMeasure, Nutrients, RecipeItem } from './types'
 
 export const NUTRIENTS: { key: keyof Nutrients; label: string; unit: string }[] = [
   { key: 'kcal', label: 'Calories', unit: 'kcal' },
@@ -98,11 +98,65 @@ export const kcal = (n: number) => Math.round(n).toLocaleString()
 /** Grams to one decimal under 10, whole numbers above. */
 export const grams = (n: number) => (n < 10 ? String(Math.round(n * 10) / 10) : String(Math.round(n)))
 
-/** "15 g", "200 ml", "1 piece", "1.5 pieces". */
+/** "15 g", "200 ml", "1 piece", "1.5 pieces", "1 serving". */
 export function fmtAmount(amount: number, unit: FoodUnit): string {
   const n = grams(amount)
-  if (unit !== 'pc') return `${n} ${unit}`
-  return `${n} ${amount === 1 ? 'piece' : 'pieces'}`
+  if (unit === 'pc') return `${n} ${amount === 1 ? 'piece' : 'pieces'}`
+  if (unit === 'srv') return `${n} ${amount === 1 ? 'serving' : 'servings'}`
+  return `${n} ${unit}`
 }
+
+// Recipes ---------------------------------------------------------------------------------------------
+
+export const TSP_PER_TBSP = 3
+/** A level teaspoon of a liquid is 5 ml. Powders differ (instant coffee about 2 g, sugar about 4 g), so they need their own. */
+export const TSP_ML = 5
+
+/** Grams (or ml) in one teaspoon of this food, if known. */
+export const spoonSize = (f: Pick<Food, 'tsp' | 'unit'>): number | undefined => f.tsp ?? (f.unit === 'ml' ? TSP_ML : undefined)
+
+/** The ways an ingredient can be measured: its own unit, plus spoons for anything weighed or poured. */
+export const measuresFor = (f: Pick<Food, 'unit'>): IngredientMeasure[] => (f.unit === 'g' || f.unit === 'ml' ? ['tsp', 'tbsp', f.unit] : [f.unit as IngredientMeasure])
+
+/** An ingredient line in the food's own unit (grams, ml or pieces). Undefined when a spoon size is needed and not set. */
+export function itemAmount(item: Pick<RecipeItem, 'qty' | 'measure'>, f: Pick<Food, 'tsp' | 'unit'>): number | undefined {
+  if (item.measure !== 'tsp' && item.measure !== 'tbsp') return item.qty
+  const s = spoonSize(f)
+  return s === undefined ? undefined : item.qty * s * (item.measure === 'tbsp' ? TSP_PER_TBSP : 1)
+}
+
+/** Sum of nutrients. A marker no part reports stays missing rather than showing a made-up 0. */
+export function addNutrients(parts: Nutrients[]): Nutrients {
+  const out = { kcal: 0 } as Nutrients
+  for (const n of parts)
+    for (const { key } of NUTRIENTS) {
+      const v = n[key]
+      if (v !== undefined) out[key] = (out[key] ?? 0) + v
+    }
+  return out
+}
+
+/**
+ * Nutrition of a mix of ingredients, divided by the servings it makes.
+ * `missing` names ingredients that can't be counted: deleted foods, or spoons with no spoon size yet.
+ */
+export function mixNutrients(items: RecipeItem[], lookup: (id: string) => Food | undefined, servings = 1): { n: Nutrients; missing: string[] } {
+  const parts: Nutrients[] = []
+  const missing: string[] = []
+  for (const it of items) {
+    const f = lookup(it.foodId)
+    const amount = f && itemAmount(it, f)
+    if (!f || amount === undefined) missing.push(it.name)
+    else parts.push(foodNutrients(f, amount))
+  }
+  const sum = addNutrients(parts)
+  return { n: servings > 0 && servings !== 1 ? scale(sum, servings, 1) : sum, missing }
+}
+
+/** "1 tbsp", "2 tsp", "100 ml", "1 piece". */
+export const fmtMeasure = (qty: number, m: IngredientMeasure) => (m === 'tsp' || m === 'tbsp' ? `${grams(qty)} ${m}` : fmtAmount(qty, m))
+
+/** "3 tbsp Instant coffee + 100 ml Water". */
+export const mixText = (items: Pick<RecipeItem, 'name' | 'qty' | 'measure'>[]) => items.map((i) => `${fmtMeasure(i.qty, i.measure)} ${i.name}`).join(' + ')
 
 export const foodTitle = (f: { name: string; brand?: string }) => (f.brand ? `${f.name} · ${f.brand}` : f.name)

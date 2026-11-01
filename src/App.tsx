@@ -7,6 +7,7 @@ import { EntryView } from './screens/EntryView'
 import { FormEdit } from './screens/FormEdit'
 import { FoodEdit, FoodList, Health } from './screens/Health'
 import { Hiit } from './screens/Hiit'
+import { RecipeEdit } from './screens/Recipe'
 import { History, SessionDetail } from './screens/History'
 import { Library } from './screens/Library'
 import { RoutineEdit, Routines } from './screens/Routines'
@@ -40,6 +41,7 @@ const SECTION: Partial<Record<Route['name'], Route['name']>> = {
   hiit: 'today',
   foods: 'health',
   foodEdit: 'health',
+  recipeEdit: 'health',
 }
 
 function Screen({ route }: { route: Route }) {
@@ -86,6 +88,8 @@ function Screen({ route }: { route: Route }) {
       return <FoodList key={(route.day ?? '') + (route.meal ?? '') + (route.pick ?? '')} day={route.day} meal={route.meal} pick={route.pick} />
     case 'foodEdit':
       return <FoodEdit key={route.id ?? 'new'} id={route.id} day={route.day} meal={route.meal} />
+    case 'recipeEdit':
+      return <RecipeEdit key={route.id ?? 'new'} id={route.id} day={route.day} meal={route.meal} />
   }
 }
 

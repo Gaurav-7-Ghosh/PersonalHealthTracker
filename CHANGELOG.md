@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Recipes: build a drink or dish from your own foods, measured the way you make it. For example Morning coffee = 1 tbsp of your instant coffee jar (entered once with its label values) + 100 ml water. Spoons work for anything weighed or poured (1 tbsp = 3 tsp); for powders, say once how much a level teaspoon weighs and the app remembers it. When you log a recipe you can change this time's mix (3 tbsp instead of 1), the next log starts from last time's mix, and "Make this the usual mix" updates the recipe. The day shows what went in, like "3 tbsp Nescafe Classic + 100 ml Water", and every label value (calories, sugar, sodium, ...) is counted. Starter foods gain Instant coffee powder, Water and an Instant coffee recipe.
 - Foods by the piece: pick "piece" as the unit for things you eat whole (a Kathi roll, a samosa). Enter the calories for 1 piece and log 1, 2 or ½.
 - New body map: a front and back anatomy figure with each muscle group in its own colour, closer to a gym chart. Tapping works as before; on body-part pages and exercise lists the muscles that don't apply are greyed out, and the shared workout image colours the muscles worked.
 - Health tab: a daily calorie counter with a ring against your goal (2,000 kcal to start; tap Goal to change it), protein, carbs and fat for the day, and what you ate grouped as Breakfast, Lunch, Snacks and Dinner. The count starts again at midnight on the phone; earlier days stay in history (use the arrows to look back or add to a past day).

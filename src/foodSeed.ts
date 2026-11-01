@@ -6,11 +6,12 @@
 // - Dishes (dal, chicken tikka, paneer tikka, milk coffee) have no open lab values that match a home
 //   recipe, so they are worked out from those USDA ingredients with the recipe written in `source`.
 //   Treat them as estimates and edit them to match how you cook or order them.
-import type { Food, FoodUnit, Nutrients } from './types'
+import { mixNutrients } from './nutrition'
+import type { Food, FoodUnit, Nutrients, RecipeItem } from './types'
 
 const SR = 'USDA FoodData Central, SR Legacy: '
 
-function f(id: string, name: string, n: Nutrients, source: string, opts: { unit?: FoodUnit; per?: number; serving?: [string, number] } = {}): Food {
+function f(id: string, name: string, n: Nutrients, source: string, opts: { unit?: FoodUnit; per?: number; serving?: [string, number]; tsp?: number } = {}): Food {
   return {
     id: 'food-' + id,
     name,
@@ -18,6 +19,7 @@ function f(id: string, name: string, n: Nutrients, source: string, opts: { unit?
     per: opts.per ?? 100,
     n,
     serving: opts.serving ? { label: opts.serving[0], amount: opts.serving[1] } : undefined,
+    tsp: opts.tsp,
     source,
     sample: true,
     createdAt: 0,
@@ -31,7 +33,10 @@ export const SEED_FOODS: Food[] = [
   // 150 ml brewed coffee + 50 ml whole milk + 1 tsp (4 g) sugar = 48 kcal per 200 ml cup.
   f('coffee-milk', 'Coffee with milk and sugar', { kcal: 24, protein: 0.8, carbs: 3.2, sugar: 3.2, fat: 0.8, sodium: 12 }, 'Estimate from USDA: 150 ml brewed coffee, 50 ml whole milk, 4 g sugar per 200 ml cup', { unit: 'ml', serving: ['1 cup', 200] }),
   f('milk-whole', 'Milk, whole', { kcal: 61, protein: 3.2, carbs: 4.8, sugar: 5.1, fat: 3.3, satFat: 1.9, sodium: 43 }, SR + 'Milk, whole, 3.25% milkfat, with added vitamin D', { unit: 'ml', serving: ['1 glass', 250] }),
-  f('sugar', 'Sugar', { kcal: 387, carbs: 100, sugar: 100 }, SR + 'Sugars, granulated', { serving: ['1 tsp', 4] }),
+  f('sugar', 'Sugar', { kcal: 387, carbs: 100, sugar: 100 }, SR + 'Sugars, granulated', { serving: ['1 tsp', 4], tsp: 4 }),
+  // A level teaspoon of instant coffee weighs about 1.8 g (USDA household measure). Swap in your jar's label.
+  f('coffee-instant', 'Instant coffee powder', { kcal: 353, protein: 12.2, carbs: 75.4, sugar: 0, fat: 0.5, fibre: 0, sodium: 37 }, SR + 'Beverages, coffee, instant, regular, powder', { serving: ['1 tsp', 1.8], tsp: 1.8 }),
+  f('water', 'Water', { kcal: 0, sodium: 4 }, SR + 'Beverages, water, tap, drinking', { unit: 'ml', serving: ['1 glass', 250] }),
 
   // Breads, rice, dal
   f('roti', 'Wheat roti (chapati)', { kcal: 299, protein: 7.9, carbs: 46.1, sugar: 2.9, fat: 9.2, fibre: 9.7, sodium: 298 }, SR + 'Bread, chapati or roti, whole wheat, commercially prepared, frozen (FDC 174075)', { serving: ['1 roti', 40] }),
@@ -59,3 +64,19 @@ export const SEED_FOODS: Food[] = [
   f('almonds', 'Almonds', { kcal: 579, protein: 21.2, carbs: 21.6, sugar: 4.4, fat: 49.9, satFat: 3.8, fibre: 12.5, sodium: 1 }, SR + 'Nuts, almonds', { serving: ['10 almonds', 12] }),
   f('cashews', 'Cashews', { kcal: 553, protein: 18.2, carbs: 30.2, sugar: 5.9, fat: 43.9, satFat: 7.8, fibre: 3.3, sodium: 12 }, SR + 'Nuts, cashew nuts, raw', { serving: ['10 cashews', 15] }),
 ]
+
+/** A starter recipe, worked out from the starter foods above. */
+function recipe(id: string, name: string, items: RecipeItem[], servings = 1): Food {
+  const byId = new Map(SEED_FOODS.map((x) => [x.id, x]))
+  return {
+    ...f(id, name, mixNutrients(items, (k) => byId.get(k), servings).n, 'Recipe from the starter foods; edit the amounts to match how you make it', { unit: 'srv', per: 1 }),
+    recipe: { items, servings },
+  }
+}
+
+SEED_FOODS.push(
+  recipe('recipe-instant-coffee', 'Instant coffee', [
+    { foodId: 'food-coffee-instant', name: 'Instant coffee powder', qty: 1, measure: 'tbsp' },
+    { foodId: 'food-water', name: 'Water', qty: 100, measure: 'ml' },
+  ]),
+)

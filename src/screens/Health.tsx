@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Chip, Confirm, Empty, Photo, Sheet, Stepper, TopBar } from '../components/ui'
 import { useStore } from '../store'
-import { MEALS, NUTRIENTS, dayLabel, fmtAmount, foodNutrients, foodTitle, grams, kcal, logNutrients, mealLabel, mealNow, shiftDay, total, useToday } from '../nutrition'
+import { MEALS, NUTRIENTS, dayLabel, fmtAmount, foodNutrients, foodTitle, grams, kcal, logNutrients, mealLabel, mealNow, mixText, shiftDay, total, useToday } from '../nutrition'
+import { RecipeAmountSheet } from './Recipe'
 import type { Food, FoodLog, FoodUnit, Meal, Nutrients } from '../types'
 import { deletePhoto, resizeImage, savePhoto, uid } from '../util'
 
@@ -115,7 +116,7 @@ export function Health() {
                           <span className="list-name">{l.name}</span>
                           <span className="list-sub">
                             {l.brand ? `${l.brand} · ` : ''}
-                            {fmtAmount(l.amount, l.unit)}
+                            {l.mix ? (l.amount === 1 ? '' : fmtAmount(l.amount, l.unit) + ' · ') + mixText(l.mix) : fmtAmount(l.amount, l.unit)}
                           </span>
                         </span>
                         <span className="kcal-pill">{kcal(n.kcal)}</span>
@@ -193,7 +194,7 @@ export function FoodThumb({ food, className = 'thumb' }: { food: { name: string;
   )
 }
 
-const QUICK: Record<FoodUnit, number[]> = { g: [10, 15, 30, 50, 100], ml: [50, 100, 200, 250], pc: [0.5, 1, 2, 3] }
+const QUICK: Record<FoodUnit, number[]> = { g: [10, 15, 30, 50, 100], ml: [50, 100, 200, 250], pc: [0.5, 1, 2, 3], srv: [0.5, 1, 2] }
 
 /** Log a food, or change one already logged: amount, meal, and a live total. */
 function AmountSheet({ food, log, day, meal, onClose, onDone }: { food?: Food; log?: FoodLog; day: string; meal: Meal; onClose: () => void; onDone?: () => void }) {
@@ -230,7 +231,7 @@ function AmountSheet({ food, log, day, meal, onClose, onDone }: { food?: Food; l
           Protein {grams(n.protein ?? 0)} g · Carbs {grams(n.carbs ?? 0)} g · Fat {grams(n.fat ?? 0)} g
         </div>
       </div>
-      <Stepper label="Amount" unit={unit} step={unit === 'pc' ? 0.5 : 5} min={0} value={amount} onChange={setAmount} big />
+      <Stepper label="Amount" unit={unit} step={unit === 'pc' || unit === 'srv' ? 0.5 : 5} min={0} value={amount} onChange={setAmount} big />
       <div className="chips wrap">
         {serving && (
           <>
@@ -249,6 +250,7 @@ function AmountSheet({ food, log, day, meal, onClose, onDone }: { food?: Food; l
         ))}
       </div>
       {last && !log && <p className="muted small">Last time: {fmtAmount(last.amount, unit)}</p>}
+      {log?.mix && <p className="muted small">Mix: {mixText(log.mix)}</p>}
       <div className="chips wrap" aria-label="Meal">
         {MEALS.map((x) => (
           <Chip key={x.id} on={m === x.id} onClick={() => setM(x.id)}>
@@ -313,7 +315,7 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
   const list = foods
     .filter((f) => !needle || f.name.toLowerCase().includes(needle) || f.brand?.toLowerCase().includes(needle))
     .sort((a, b) => Number(!!a.sample) - Number(!!b.sample) || a.name.localeCompare(b.name))
-  const tap = (f: Food) => (picking ? setPicked(f) : go({ name: 'foodEdit', id: f.id }))
+  const tap = (f: Food) => (picking ? setPicked(f) : go({ name: f.recipe ? 'recipeEdit' : 'foodEdit', id: f.id }))
 
   return (
     <div className="screen">
@@ -330,6 +332,9 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
         <Icon name="search" />
         <input placeholder="Search food or brand" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search foods" />
       </div>
+      <button type="button" className="btn ghost" onClick={() => go({ name: 'recipeEdit', day, meal })}>
+        <Icon name="bowl" size={18} /> New recipe
+      </button>
 
       {picking && !needle && recent.length > 0 && (
         <section className="block" aria-label="Recent">
@@ -356,8 +361,8 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
                 <span className="list-main">
                   <span className="list-name">{f.name}</span>
                   <span className="list-sub">
-                    {f.brand ? `${f.brand} · ` : ''}
-                    {kcal(f.n.kcal)} kcal per {fmtAmount(f.per, f.unit)}
+                    {f.recipe ? 'Recipe · ' : f.brand ? `${f.brand} · ` : ''}
+                    {f.recipe ? `${kcal(f.n.kcal)} kcal · ${mixText(f.recipe.items)}` : `${kcal(f.n.kcal)} kcal per ${fmtAmount(f.per, f.unit)}`}
                   </span>
                 </span>
                 {!picking && <Icon name="next" className="chev" />}
@@ -378,7 +383,8 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
         )}
       </section>
 
-      {picked && day && <AmountSheet key={picked.id} food={picked} day={day} meal={meal ?? 'snack'} onClose={() => setPicked(undefined)} onDone={() => resetTo([{ name: 'health' }])} />}
+      {picked?.recipe && day && <RecipeAmountSheet key={picked.id} food={picked} day={day} meal={meal ?? 'snack'} onClose={() => setPicked(undefined)} onDone={() => resetTo([{ name: 'health' }])} />}
+      {picked && !picked.recipe && day && <AmountSheet key={picked.id} food={picked} day={day} meal={meal ?? 'snack'} onClose={() => setPicked(undefined)} onDone={() => resetTo([{ name: 'health' }])} />}
     </div>
   )
 }

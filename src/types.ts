@@ -154,8 +154,25 @@ export interface Nutrients {
   sodium?: number
 }
 
-/** Grams, millilitres, or pieces for things eaten whole (1 Kathi roll, 1 samosa). */
-export type FoodUnit = 'g' | 'ml' | 'pc'
+/** Grams, millilitres, pieces for things eaten whole (1 Kathi roll, 1 samosa), or servings of a recipe (1 cup of coffee). */
+export type FoodUnit = 'g' | 'ml' | 'pc' | 'srv'
+/** How an ingredient is measured in a recipe: the food's own unit, or spoons. 1 tbsp = 3 tsp. */
+export type IngredientMeasure = 'g' | 'ml' | 'pc' | 'tsp' | 'tbsp'
+
+/** One ingredient line of a recipe, e.g. 1 tbsp of instant coffee. `name` is kept in case the food is deleted later. */
+export interface RecipeItem {
+  foodId: string
+  name: string
+  qty: number
+  measure: IngredientMeasure
+}
+
+/** A recipe is a food made of other foods. Its `n` is worked out from the ingredients for one serving. */
+export interface Recipe {
+  items: RecipeItem[]
+  /** How many servings the ingredients make: 1 for a cup of coffee, 4 for a pot of dal. */
+  servings: number
+}
 export type Meal = 'breakfast' | 'lunch' | 'snack' | 'dinner'
 
 /**
@@ -171,6 +188,10 @@ export interface Food {
   unit: FoodUnit
   per: number
   n: Nutrients
+  /** Grams (or ml) in one level teaspoon, for measuring this food by the spoon in recipes. */
+  tsp?: number
+  /** Set when this food is a recipe of other foods; then unit is 'srv' and per is 1. */
+  recipe?: Recipe
   /** A handy portion, e.g. 1 roti = 40 g. */
   serving?: { label: string; amount: number }
   /** Where starter values came from. */
@@ -194,6 +215,8 @@ export interface FoodLog {
   per: number
   /** Nutrition per `per`, copied from the food when logged. */
   base: Nutrients
+  /** For a recipe: the mix used this time (3 tbsp coffee + 100 ml water), as logged. */
+  mix?: RecipeItem[]
   at: number
   updatedAt: number
 }
@@ -220,3 +243,4 @@ export type Route =
   | { name: 'health' }
   | { name: 'foods'; day?: string; meal?: Meal; pick?: string }
   | { name: 'foodEdit'; id?: string; day?: string; meal?: Meal }
+  | { name: 'recipeEdit'; id?: string; day?: string; meal?: Meal }

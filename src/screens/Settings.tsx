@@ -216,7 +216,9 @@ export function Settings() {
               await store.deleteEntry(e.id)
               n++
             }
+          // Keep starter foods that were eaten, or that one of your own recipes uses.
           const eaten = new Set(foodLog.map((l) => l.foodId))
+          for (const f of foods) if (f.recipe && !(f.sample && f.updatedAt === f.createdAt)) f.recipe.items.forEach((i) => eaten.add(i.foodId))
           let nf = 0
           for (const f of foods)
             if (f.sample && f.updatedAt === f.createdAt && !eaten.has(f.id)) {
