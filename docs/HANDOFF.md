@@ -35,6 +35,7 @@ Later it will add meal plans and macros, and Garmin data. It's a senior develope
 | No router or state library; one `store.tsx` | Small app; fewer dependencies to keep offline |
 | Calorie day = local calendar day (`YYYY-MM-DD`), turning over at midnight on the device; past days are kept | Gaurav asked for a counter that resets at 12 am; keeping days gives history for free |
 | A food stores the label's values for the amount printed (`per` + `unit`); a log stores grams eaten and a copy of those values | Labels in India print per 100 g or per serving; editing a food later must not rewrite past days |
+| Nutrient limits default to WHO guidance (ICMR-NIN where it agrees), scaled to the kcal goal where given as a share of energy, and are editable per marker | General adult guides, not medical advice; he can match them to his own targets |
 | Starter foods from USDA FoodData Central (CC0); Indian dishes are estimates built from USDA ingredients, recipe in `source` | Open, free data; there is no open lab data for home-style dal or tikka. He edits them to match his cooking |
 
 ## What 0.1.0 contains
@@ -60,6 +61,7 @@ See [CHANGELOG.md](../CHANGELOG.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [FLO
 - Fix: the Home Screen app starts below the status bar and Dynamic Island.
 - Fix: sheets now open above the tab bar on every screen.
 - Health tab with daily calorie tracking: starter foods, your own branded foods with a pack photo, logging by grams, a daily counter that turns over at midnight, history by day. See flow 11 in [FLOWS.md](FLOWS.md).
+- Nutrients on the Health tab: sodium, sugar, added sugar, fibre, saturated and trans fat, cholesterol, protein, carbs and fat against daily limits (WHO-based defaults, editable per marker in `settings.nutrientGoals`), with a per-marker breakdown of which foods it came from. See flow 11.
 - Body map redrawn as a coloured front and back anatomy figure (each muscle group its own colour), in the style of a reference chart Gaurav shared; the drawing is original.
 - Release these as 0.2.0 when ready (see Releases in the README).
 
@@ -75,7 +77,7 @@ See [CHANGELOG.md](../CHANGELOG.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [FLO
 2. **Shorter address (optional, free).** Either rename the repo (for example `fit`, giving `gaurav-7-ghosh.github.io/fit`) or use Cloudflare Pages or Netlify for `name.pages.dev` or `name.netlify.app`. Moving address means a backup and restore, because data is tied to the address. Not decided yet.
 3. **OneNote import (not built).** Options: Microsoft Graph API (needs Microsoft sign-in and network), or on-device text recognition with Tesseract.js (adds a few MB). Today he copies text with iPhone Live Text and pastes it into cues.
 4. **Garmin (SRS, later).** Gaurav has a Garmin watch on the way. Pulling data from Garmin Connect for free means a manual export and import, or an unofficial client. The official Garmin Connect Developer Program requires approval. Revisit when the watch arrives.
-5. **Meals, recipes and weight (SRS, later).** Daily calorie and macro tracking is built (Health tab). Still open: recipes and meal plans, shop links for items, weigh-ins from his scale, macro goals (only a kcal goal today), scanning a barcode or reading a label photo (both need a free service or on-device OCR; not decided).
+5. **Meals, recipes and weight (SRS, later).** Daily calorie, macro and nutrient tracking with daily limits is built (Health tab). Still open: recipes and meal plans, shop links for items, weigh-ins from his scale, scanning a barcode or reading a label photo (both need a free service or on-device OCR; not decided).
 6. **Routines.** The screens still exist and can be reached from Today when any routine exists, but there are no presets by design. Decide whether to keep or remove them.
 
 ## Next steps (suggested)
