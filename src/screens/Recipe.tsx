@@ -1,15 +1,16 @@
-// Recipes: a food made of other foods, measured by the spoon or by weight (1 tbsp instant coffee + 100 ml water).
+// Recipes and home-cooked dishes: a food made of other foods, measured by the spoon, by weight or by the piece
+// (1 tbsp instant coffee + 100 ml water; 1 roti + 2 eggs + 50 g paneer for an egg paneer roll).
 // A recipe is stored as a Food with `recipe` set, so it shows in the food picker, Recent and sync like any food.
 import { useMemo, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Chip, Confirm, Sheet, Stepper, TopBar } from '../components/ui'
 import { useStore } from '../store'
-import { MEALS, NUTRIENTS, dayLabel, fmtAmount, fmtNutrient, foodNutrients, foodTitle, grams, itemAmount, kcal, mealLabel, measuresFor, mixNutrients, mixText, scale } from '../nutrition'
+import { MEALS, NUTRIENTS, dayLabel, fmtAmount, fmtNutrient, foodNutrients, foodTitle, grams, itemAmount, kcal, mealLabel, brandChoices, hasPortion, matchFood, swapFood, measuresFor, mixNutrients, mixText, parseTyped, portionName, scale, typedItem } from '../nutrition'
 import type { Food, FoodLog, Meal, IngredientMeasure, Nutrients, RecipeItem } from '../types'
 import { uid } from '../util'
 import { FoodThumb } from './Health'
 
-const STEP: Record<IngredientMeasure, number> = { tsp: 0.5, tbsp: 0.5, g: 5, ml: 10, pc: 0.5 }
+const STEP: Record<IngredientMeasure, number> = { tsp: 0.5, tbsp: 0.5, g: 5, ml: 10, pc: 0.5, portion: 0.5 }
 
 /** Spoon sizes typed while building a mix, layered over the saved foods until they are saved. */
 function useMixFoods() {
@@ -38,12 +39,14 @@ function useMixFoods() {
 
 /** The ingredient lines: amount, measure (tsp, tbsp, g, ml) and, for powders, how much a teaspoon weighs. */
 function MixRows({ items, onChange, lookup, setSpoon, onRemove }: { items: RecipeItem[]; onChange: (i: number, p: Partial<RecipeItem>) => void; lookup: (id: string) => Food | undefined; setSpoon: (id: string, v: number | undefined) => void; onRemove?: (i: number) => void }) {
+  const { foods } = useStore()
   return (
     <ul className="mix-list">
       {items.map((it, i) => {
         const f = lookup(it.foodId)
         const amount = f && itemAmount(it, f)
         const spoon = it.measure === 'tsp' || it.measure === 'tbsp'
+        const portion = it.measure === 'portion'
         return (
           <li key={it.foodId + i} className="mix-row card" aria-label={it.name}>
             <div className="mix-head">
@@ -54,17 +57,18 @@ function MixRows({ items, onChange, lookup, setSpoon, onRemove }: { items: Recip
                 </button>
               )}
             </div>
+            {f && <BrandPick item={it} food={f} foods={foods} onPick={(to, defaultId) => onChange(i, swapFood(it, f, to, defaultId))} />}
             {!f ? (
               <p className="warn small">This food was deleted, so it isn't counted. Remove it or add the food again.</p>
             ) : (
               <>
                 <div className="mix-amount">
-                  <Stepper label={it.name} unit={it.measure} step={STEP[it.measure]} min={0} value={it.qty} onChange={(qty) => onChange(i, { qty })} />
+                  <Stepper label={it.name} unit={portion && f ? portionName(f, it.qty) : it.measure} step={STEP[it.measure]} min={0} value={it.qty} onChange={(qty) => onChange(i, { qty })} />
                   {measuresFor(f).length > 1 && (
                     <div className="segmented" role="tablist" aria-label={`IngredientMeasure for ${it.name}`}>
                       {measuresFor(f).map((m) => (
                         <button key={m} type="button" role="tab" aria-selected={it.measure === m} onClick={() => onChange(i, { measure: m, qty: m === it.measure ? it.qty : m === 'g' || m === 'ml' ? (amount ? +amount.toFixed(1) : 100) : 1 })}>
-                          {m}
+                          {m === 'portion' ? portionName(f) : m}
                         </button>
                       ))}
                     </div>
@@ -72,7 +76,7 @@ function MixRows({ items, onChange, lookup, setSpoon, onRemove }: { items: Recip
                 </div>
                 {spoon && f.unit === 'g' && <SpoonField food={f} onChange={(v) => setSpoon(f.id, v)} />}
                 <p className="muted small">
-                  {amount === undefined ? 'Set how much a teaspoon weighs to count this.' : `${spoon ? fmtAmount(amount, f.unit) + ' · ' : ''}${kcal(foodNutrients(f, amount).kcal)} kcal`}
+                  {amount === undefined ? 'Set how much a teaspoon weighs to count this.' : `${spoon || portion ? fmtAmount(amount, f.unit) + ' · ' : ''}${kcal(foodNutrients(f, amount).kcal)} kcal`}
                 </p>
               </>
             )}
@@ -80,6 +84,26 @@ function MixRows({ items, onChange, lookup, setSpoon, onRemove }: { items: Recip
         )
       })}
     </ul>
+  )
+}
+
+/** Optional: which brand went in (your Amul paneer, your farm eggs). Left alone, the default food counts. */
+function BrandPick({ item, food, foods, onPick }: { item: RecipeItem; food: Food; foods: Food[]; onPick: (to: Food, defaultId: string | undefined) => void }) {
+  const choices = brandChoices(item, foods)
+  if (!choices.length) return null
+  const defaultId = item.defaultId ?? (food.sample ? food.id : undefined)
+  const id = 'brand-' + item.foodId + '-' + item.name.replace(/\W+/g, '-')
+  return (
+    <div className="per-row brand-row">
+      <label htmlFor={id}>Brand</label>
+      <select id={id} value={food.id} onChange={(e) => onPick(choices.find((c) => c.id === e.target.value)!, defaultId)}>
+        {choices.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.id === defaultId ? 'Default' : c.brand || c.name} · {kcal(c.n.kcal)} kcal / {fmtAmount(c.per, c.unit)}
+          </option>
+        ))}
+      </select>
+    </div>
   )
 }
 
@@ -165,13 +189,52 @@ function IngredientPicker({ open, onClose, onPick }: { open: boolean; onClose: (
   )
 }
 
-/** A sensible first line for a new ingredient: spoons for powders, 100 ml for liquids, 1 for pieces. */
+/** A sensible first line for a new ingredient: 1 portion (1 roti, 1 egg) for a weighed food that has one, else spoons for powders, 100 ml for liquids, 1 for pieces. */
 function firstItem(f: Food): RecipeItem {
+  if (f.unit === 'g' && hasPortion(f)) return { foodId: f.id, name: foodTitle(f), qty: 1, measure: 'portion' }
   const measure: IngredientMeasure = f.unit === 'g' ? 'tsp' : f.unit === 'ml' ? 'ml' : 'pc'
   return { foodId: f.id, name: foodTitle(f), qty: measure === 'ml' ? 100 : 1, measure }
 }
 
-/** Create or edit a recipe: a name, the ingredients and how many servings they make. */
+/**
+ * Type the dish the way you'd say it ("1 wheat roti, 2 eggs, 50g paneer") and each part is matched to a food.
+ * Parts that match nothing are listed, so you can add them from the picker or under My foods.
+ */
+function TypedIngredients({ onAdd }: { onAdd: (items: RecipeItem[]) => void }) {
+  const { foods } = useStore()
+  const [text, setText] = useState('')
+  const [unmatched, setUnmatched] = useState<string[]>([])
+  const add = () => {
+    const found: RecipeItem[] = []
+    const miss: string[] = []
+    for (const line of parseTyped(text)) {
+      // "1 glass milk": the first word may be the portion, so try without it too.
+      const short = line.name.split(/\s+/).slice(1).join(' ')
+      const f = matchFood(line.name, foods) ?? (short ? matchFood(short, foods) : undefined)
+      if (f) found.push(typedItem(line, f))
+      else miss.push(line.text)
+    }
+    if (found.length) onAdd(found)
+    setUnmatched(miss)
+    setText(miss.join(', '))
+  }
+  return (
+    <div className="typed-ingredients">
+      <label htmlFor="typed-ingredients" className="muted small">
+        Type what went in
+      </label>
+      <div className="typed-row">
+        <input id="typed-ingredients" value={text} placeholder="1 wheat roti, 2 eggs, 50g paneer" onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && text.trim() && add()} />
+        <button type="button" className="btn small" disabled={!text.trim()} onClick={add}>
+          Add
+        </button>
+      </div>
+      {unmatched.length > 0 && <p className="warn small">No food found for {unmatched.join(', ')}. Add it under My foods with its label values, or pick something close with Add ingredient.</p>}
+    </div>
+  )
+}
+
+/** Create or edit a recipe or home-cooked dish: a name, the ingredients and how many servings they make. */
 export function RecipeEdit({ id, day, meal }: { id?: string; day?: string; meal?: Meal }) {
   const { food, saveFood, deleteFood, back, replace, notify } = useStore()
   const original = id ? food(id) : undefined
@@ -203,7 +266,7 @@ export function RecipeEdit({ id, day, meal }: { id?: string; day?: string; meal?
       updatedAt: Date.now(),
     }
     await saveFood(next)
-    notify('Recipe saved')
+    notify(`${next.name} saved`)
     if (day) replace({ name: 'foods', day, meal, pick: next.id })
     else back()
   }
@@ -211,7 +274,7 @@ export function RecipeEdit({ id, day, meal }: { id?: string; day?: string; meal?
   return (
     <div className="screen form">
       <TopBar
-        title={original ? 'Edit recipe' : 'New recipe'}
+        title={original ? 'Edit dish' : 'New dish or recipe'}
         onBack={back}
         right={
           <button type="button" className="btn small primary" onClick={save}>
@@ -221,14 +284,15 @@ export function RecipeEdit({ id, day, meal }: { id?: string; day?: string; meal?
       />
       <div className="field">
         <label htmlFor="recipe-name">Name</label>
-        <input id="recipe-name" value={name} placeholder="e.g. Morning coffee" onChange={(e) => setName(e.target.value)} autoFocus={!original} />
+        <input id="recipe-name" value={name} placeholder="e.g. Egg paneer roll" onChange={(e) => setName(e.target.value)} autoFocus={!original} />
       </div>
 
       <section className="block" aria-label="Ingredients">
         <div className="section-head">
           <h2>Ingredients</h2>
         </div>
-        <p className="muted small">Add foods from My foods (enter a jar or bottle there with its label values first), then say how much goes in: spoons, grams or ml.</p>
+        <p className="muted small">What you cooked it with: 1 roti, 2 eggs, 50 g paneer. Pick from your foods and the starter list, then say how much went in by the piece, spoon, gram or ml. A pack with a label goes under My foods first.</p>
+        <TypedIngredients onAdd={(xs) => setItems((cur) => [...cur, ...xs])} />
         <MixRows items={items} lookup={lookup} setSpoon={setSpoon} onChange={(i, p) => setItems((xs) => xs.map((x, k) => (k === i ? { ...x, ...p } : x)))} onRemove={(i) => setItems((xs) => xs.filter((_, k) => k !== i))} />
         <button type="button" className="btn ghost" onClick={() => setPicking(true)}>
           <Icon name="plus" size={18} /> Add ingredient
@@ -237,7 +301,7 @@ export function RecipeEdit({ id, day, meal }: { id?: string; day?: string; meal?
 
       <section className="block">
         <Stepper label="Makes" unit={servings === 1 ? 'serving' : 'servings'} step={1} min={1} value={servings} onChange={setServings} />
-        <p className="muted small">1 for a cup of coffee; more for a pot you share out.</p>
+        <p className="muted small">1 for a roll or a cup of coffee; more for a pot of dal you share out or eat over days.</p>
       </section>
 
       {items.length > 0 && <NutrientTable n={n} label={servings === 1 ? 'for the whole recipe' : 'per serving'} />}
@@ -245,7 +309,7 @@ export function RecipeEdit({ id, day, meal }: { id?: string; day?: string; meal?
 
       {original && (
         <button type="button" className="btn danger-ghost" onClick={() => setConfirmDelete(true)}>
-          Delete recipe
+          Delete {original.name}
         </button>
       )}
       <IngredientPicker

@@ -168,8 +168,11 @@ export type NutrientKey = keyof Nutrients
 
 /** Grams, millilitres, pieces for things eaten whole (1 Kathi roll, 1 samosa), or servings of a recipe (1 cup of coffee). */
 export type FoodUnit = 'g' | 'ml' | 'pc' | 'srv'
-/** How an ingredient is measured in a recipe: the food's own unit, or spoons. 1 tbsp = 3 tsp. */
-export type IngredientMeasure = 'g' | 'ml' | 'pc' | 'tsp' | 'tbsp'
+/**
+ * How an ingredient is measured in a recipe: the food's own unit, spoons (1 tbsp = 3 tsp), or the food's
+ * own portion (`portion`: 1 roti, 2 eggs), which counts as `serving.amount` grams each.
+ */
+export type IngredientMeasure = 'g' | 'ml' | 'pc' | 'tsp' | 'tbsp' | 'portion'
 
 /** One ingredient line of a recipe, e.g. 1 tbsp of instant coffee. `name` is kept in case the food is deleted later. */
 export interface RecipeItem {
@@ -177,6 +180,8 @@ export interface RecipeItem {
   name: string
   qty: number
   measure: IngredientMeasure
+  /** When a brand was picked for this line, the default (starter) food it replaced, so you can switch back. */
+  defaultId?: string
 }
 
 /** A recipe is a food made of other foods. Its `n` is worked out from the ingredients for one serving. */

@@ -527,7 +527,7 @@ try {
     await page.getByLabel(/^Sodium/).fill('100')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     // The recipe: tablespoons of coffee and 100 ml of water.
-    await page.getByRole('button', { name: 'New recipe' }).click()
+    await page.getByRole('button', { name: 'New dish or recipe' }).click()
     await page.getByLabel('Name', { exact: true }).fill('Morning coffee')
     await page.getByRole('button', { name: 'Add ingredient' }).click()
     await page.getByLabel('Search ingredients').fill('nescafe')
@@ -566,6 +566,49 @@ try {
     await page.getByLabel('Search foods').fill('instant coffee')
     await page.getByRole('button', { name: /Instant coffee Recipe · 19 kcal/ }).waitFor()
     await page.getByRole('button', { name: 'Back' }).first().click()
+  })
+
+  await step('health: a home-cooked dish typed as its ingredients', async () => {
+    await page.getByRole('navigation').getByRole('button', { name: 'Health' }).click()
+    await page.getByRole('button', { name: 'My foods' }).click()
+    // A paneer brand of your own, at 300 kcal per 100 g; the starter Paneer stays the default.
+    await page.getByRole('button', { name: 'New', exact: true }).click()
+    await page.getByLabel('Name', { exact: true }).fill('Paneer')
+    await page.getByLabel('Brand').fill('Amul')
+    await page.getByLabel(/^Calories/).fill('300')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.getByRole('button', { name: 'New dish or recipe' }).click()
+    await page.getByLabel('Name', { exact: true }).fill('Egg roll at home')
+    // 1 roti (40 g, 120 kcal) + 2 raw eggs (100 g, 143 kcal) + 50 g paneer (133 kcal) = 395 kcal.
+    await page.getByLabel('Type what went in').fill('1 wheat roti, 2 eggs, 50gm paneer, 1 cup unicorn')
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByText('No food found for 1 cup unicorn').waitFor()
+    await page.getByRole('listitem', { name: 'Egg, raw' }).getByText('100 g · 143 kcal').waitFor()
+    await page.getByRole('tab', { name: 'roti' }).waitFor()
+    await page.getByTestId('recipe-kcal').getByText('395', { exact: true }).waitFor()
+    // Pick the brand on the line: 50 g of Amul is 150 kcal, so 413; back to the default is 395 again.
+    const brand = page.getByRole('listitem', { name: 'Paneer' }).getByLabel('Brand')
+    await brand.selectOption({ label: 'Amul · 300 kcal / 100 g' })
+    await page.getByTestId('recipe-kcal').getByText('413', { exact: true }).waitFor()
+    await page.getByRole('listitem', { name: 'Paneer · Amul' }).scrollIntoViewIfNeeded()
+    await shot('37-dish-brand')
+    await page.getByRole('listitem', { name: 'Paneer · Amul' }).getByLabel('Brand').selectOption({ index: 0 })
+    await page.getByTestId('recipe-kcal').getByText('395', { exact: true }).waitFor()
+    await shot('36-dish-typed')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.getByRole('button', { name: /Egg roll at home Recipe · 395 kcal/ }).waitFor()
+    // The starter dish adds 1 tsp of oil: 435 kcal.
+    await page.getByLabel('Search foods').fill('egg paneer')
+    await page.getByRole('button', { name: /Egg paneer roll Recipe · 435 kcal/ }).waitFor()
+    await page.getByRole('button', { name: 'Back' }).first().click()
+    // Log it with 3 eggs this time.
+    await page.getByRole('button', { name: 'Add food' }).click()
+    await page.getByLabel('Search foods').fill('egg roll at home')
+    await page.getByRole('button', { name: /Egg roll at home/ }).click()
+    await page.getByRole('dialog').getByRole('textbox', { name: 'Egg, raw', exact: true }).fill('3')
+    await page.getByTestId('recipe-kcal').getByText('467', { exact: true }).waitFor()
+    await page.getByRole('dialog').getByRole('button', { name: /^Add to/ }).click()
+    await page.getByText('1 × Wheat roti (chapati) + 3 × Egg, raw + 50 g Paneer').waitFor()
   })
 
   await step('data survives reload', async () => {

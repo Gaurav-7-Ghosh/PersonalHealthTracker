@@ -54,9 +54,15 @@ export const SEED_FOODS: Food[] = [
   f('chicken-tikka', 'Chicken tikka', { kcal: 173, protein: 26.7, carbs: 1.5, fat: 6.4, satFat: 1.3, sodium: 380 }, 'Estimate from USDA: 85 g roasted chicken breast, 10 g whole-milk yogurt, 3 g oil per 100 g, with salt and spices', { serving: ['6 pieces', 150] }),
   // 70 g paneer (about 265 kcal, 18 g protein, 21 g fat per 100 g) + 25 g peppers and onion + 3 g oil + 2 g yogurt.
   f('paneer-tikka', 'Paneer tikka', { kcal: 222, protein: 13, carbs: 3.6, sugar: 1.6, fat: 17.8, satFat: 9.5, fibre: 0.6, sodium: 300 }, 'Estimate: 70 g paneer (as on a typical full-fat pack), 25 g peppers and onion, 3 g oil per 100 g. Swap in your paneer label for accuracy', { serving: ['6 pieces', 150] }),
+  // Raw egg for cooking (bhurji, omelette, egg roll); the oil goes in as its own ingredient.
+  f('egg-raw', 'Egg, raw', { kcal: 143, protein: 12.6, carbs: 0.7, sugar: 0.4, fat: 9.5, satFat: 3.1, cholesterol: 372, sodium: 142 }, SR + 'Egg, whole, raw, fresh', { serving: ['1 egg', 50] }),
+  // There is no USDA entry for paneer; these are typical values on an Indian full-fat paneer pack.
+  f('paneer', 'Paneer', { kcal: 265, protein: 18.3, carbs: 1.2, fat: 20.8, satFat: 13, sodium: 25 }, 'Estimate: typical full-fat paneer pack, per 100 g. Swap in your own pack label for accuracy'),
   f('egg-boiled', 'Egg, boiled', { kcal: 155, protein: 12.6, carbs: 1.1, sugar: 1.1, fat: 10.6, satFat: 3.3, cholesterol: 373, sodium: 124 }, SR + 'Egg, whole, cooked, hard-boiled', { serving: ['1 egg', 50] }),
   f('curd', 'Curd (plain yogurt)', { kcal: 61, protein: 3.5, carbs: 4.7, sugar: 4.7, fat: 3.3, satFat: 2.1, cholesterol: 13, sodium: 46 }, SR + 'Yogurt, plain, whole milk', { serving: ['1 katori', 150] }),
-  f('ghee', 'Ghee', { kcal: 876, fat: 99.5, satFat: 61.9, cholesterol: 256 }, SR + 'Butter oil, anhydrous', { serving: ['1 tsp', 5] }),
+  f('ghee', 'Ghee', { kcal: 876, fat: 99.5, satFat: 61.9, cholesterol: 256 }, SR + 'Butter oil, anhydrous', { serving: ['1 tsp', 5], tsp: 5 }),
+  f('oil', 'Cooking oil (vegetable)', { kcal: 884, fat: 100, satFat: 15.6, transFat: 0.5 }, SR + 'Oil, soybean, salad or cooking', { serving: ['1 tsp', 4.5], tsp: 4.5 }),
+  f('onion', 'Onion', { kcal: 40, protein: 1.1, carbs: 9.3, sugar: 4.2, fibre: 1.7, fat: 0.1, sodium: 4 }, SR + 'Onions, raw', { serving: ['1 onion', 110] }),
 
   // Fruit and nuts
   f('banana', 'Banana', { kcal: 89, protein: 1.1, carbs: 22.8, sugar: 12.2, fat: 0.3, fibre: 2.6, sodium: 1 }, SR + 'Bananas, raw', { serving: ['1 medium', 118] }),
@@ -78,5 +84,12 @@ SEED_FOODS.push(
   recipe('recipe-instant-coffee', 'Instant coffee', [
     { foodId: 'food-coffee-instant', name: 'Instant coffee powder', qty: 1, measure: 'tbsp' },
     { foodId: 'food-water', name: 'Water', qty: 100, measure: 'ml' },
+  ]),
+  // A home-cooked dish: 1 roti + 2 eggs + 50 g paneer, cooked in 1 tsp oil.
+  recipe('recipe-egg-paneer-roll', 'Egg paneer roll', [
+    { foodId: 'food-roti', name: 'Wheat roti (chapati)', qty: 1, measure: 'portion' },
+    { foodId: 'food-egg-raw', name: 'Egg, raw', qty: 2, measure: 'portion' },
+    { foodId: 'food-paneer', name: 'Paneer', qty: 50, measure: 'g' },
+    { foodId: 'food-oil', name: 'Cooking oil (vegetable)', qty: 1, measure: 'tsp' },
   ]),
 )

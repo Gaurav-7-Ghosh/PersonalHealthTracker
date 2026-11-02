@@ -178,11 +178,27 @@ export const TSP_ML = 5
 /** Grams (or ml) in one teaspoon of this food, if known. */
 export const spoonSize = (f: Pick<Food, 'tsp' | 'unit'>): number | undefined => f.tsp ?? (f.unit === 'ml' ? TSP_ML : undefined)
 
-/** The ways an ingredient can be measured: its own unit, plus spoons for anything weighed or poured. */
-export const measuresFor = (f: Pick<Food, 'unit'>): IngredientMeasure[] => (f.unit === 'g' || f.unit === 'ml' ? ['tsp', 'tbsp', f.unit] : [f.unit as IngredientMeasure])
+/** The ways an ingredient can be measured: its own unit, its portion (1 roti, 1 egg), and spoons for anything weighed or poured. */
+export const measuresFor = (f: Pick<Food, 'unit' | 'serving'>): IngredientMeasure[] => {
+  const own: IngredientMeasure[] = f.unit === 'g' || f.unit === 'ml' ? ['tsp', 'tbsp', f.unit] : [f.unit as IngredientMeasure]
+  return hasPortion(f) ? ['portion', ...own] : own
+}
 
-/** An ingredient line in the food's own unit (grams, ml or pieces). Undefined when a spoon size is needed and not set. */
-export function itemAmount(item: Pick<RecipeItem, 'qty' | 'measure'>, f: Pick<Food, 'tsp' | 'unit'>): number | undefined {
+/** A portion worth offering: not for pieces, and not a "1 tsp" serving, which the spoons already cover. */
+export const hasPortion = (f: Pick<Food, 'unit' | 'serving'>) => !!f.serving && f.unit !== 'pc' && !/^\S+\s+(tsp|tbsp|teaspoons?|tablespoons?)$/i.test(f.serving.label.trim())
+
+/** "egg" for a "1 egg" portion, plural "eggs" for 2; a portion like "10 almonds" reads "10 almonds" or "2 × 10 almonds". */
+export function portionName(f: Pick<Food, 'serving'>, qty = 1): string {
+  const label = f.serving?.label.trim() ?? 'portion'
+  const one = label.match(/^(?:1|one|a)\s+(.+)$/i)
+  if (!one) return qty === 1 ? label : `× ${label}`
+  const noun = one[1]
+  return qty === 1 || /s$/i.test(noun) ? noun : noun + 's'
+}
+
+/** An ingredient line in the food's own unit (grams, ml or pieces). Undefined when a spoon size (or portion size) is needed and not set. */
+export function itemAmount(item: Pick<RecipeItem, 'qty' | 'measure'>, f: Pick<Food, 'tsp' | 'unit' | 'serving'>): number | undefined {
+  if (item.measure === 'portion') return f.serving ? item.qty * f.serving.amount : undefined
   if (item.measure !== 'tsp' && item.measure !== 'tbsp') return item.qty
   const s = spoonSize(f)
   return s === undefined ? undefined : item.qty * s * (item.measure === 'tbsp' ? TSP_PER_TBSP : 1)
@@ -216,10 +232,136 @@ export function mixNutrients(items: RecipeItem[], lookup: (id: string) => Food |
   return { n: servings > 0 && servings !== 1 ? scale(sum, servings, 1) : sum, missing }
 }
 
-/** "1 tbsp", "2 tsp", "100 ml", "1 piece". */
-export const fmtMeasure = (qty: number, m: IngredientMeasure) => (m === 'tsp' || m === 'tbsp' ? `${grams(qty)} ${m}` : fmtAmount(qty, m))
+/** "1 tbsp", "2 tsp", "100 ml", "1 piece". A portion has no unit of its own, so mixText writes it as "2 × Egg". */
+export const fmtMeasure = (qty: number, m: IngredientMeasure) => (m === 'tsp' || m === 'tbsp' ? `${grams(qty)} ${m}` : m === 'portion' ? `${grams(qty)} ×` : fmtAmount(qty, m))
 
-/** "3 tbsp Instant coffee + 100 ml Water". */
+/** "3 tbsp Instant coffee + 100 ml Water", "1 × Wheat roti + 2 × Egg, raw + 50 g Paneer". */
 export const mixText = (items: Pick<RecipeItem, 'name' | 'qty' | 'measure'>[]) => items.map((i) => `${fmtMeasure(i.qty, i.measure)} ${i.name}`).join(' + ')
+
+// Typing a dish ---------------------------------------------------------------------------------------
+
+const UNIT_WORDS: Record<string, IngredientMeasure> = {
+  g: 'g', gm: 'g', gms: 'g', gram: 'g', grams: 'g', gr: 'g',
+  ml: 'ml', millilitre: 'ml', milliliter: 'ml', millilitres: 'ml', milliliters: 'ml',
+  tsp: 'tsp', teaspoon: 'tsp', teaspoons: 'tsp',
+  tbsp: 'tbsp', tablespoon: 'tbsp', tablespoons: 'tbsp',
+  pc: 'pc', pcs: 'pc', piece: 'pc', pieces: 'pc',
+}
+const NUMBER_WORDS: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, half: 0.5 }
+const FILLER = new Set(['of', 'the', 'and', 'some', 'cooked', 'fresh'])
+
+const words = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean)
+/** eggs → egg, tomatoes → tomato, leaves → leave: enough to match a food name. */
+const stem = (w: string) => (w.length > 3 && w.endsWith('es') && !w.endsWith('ses') ? w.slice(0, -2) : w.length > 2 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w)
+
+export interface TypedLine {
+  text: string
+  qty: number
+  /** The measure typed, if any ("50g", "2 tbsp"); otherwise a count (2 eggs) or the food's portion. */
+  measure?: IngredientMeasure
+  name: string
+}
+
+/** "1 wheat roti, 2 eggs, 50gm paneer" → three lines. Also splits on "+", "and", "with" and new lines. */
+export function parseTyped(text: string): TypedLine[] {
+  return text
+    .split(/\n|,|;|\+|\band\b|\bwith\b/i)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => {
+      let rest = t.replace(/^(\d+(?:[.,]\d+)?|\d+\/\d+)\s*([a-z]+)?\b/i, (_, num: string, unit?: string) => `${num} ${unit ?? ''}`)
+      const ws = rest.split(/\s+/)
+      let qty = 1
+      let measure: IngredientMeasure | undefined
+      const n0 = ws[0]?.toLowerCase()
+      if (n0 && /^\d/.test(n0)) {
+        qty = n0.includes('/') ? Number(n0.split('/')[0]) / Number(n0.split('/')[1]) : parseFloat(n0.replace(',', '.'))
+        ws.shift()
+      } else if (n0 && NUMBER_WORDS[n0] !== undefined) {
+        qty = NUMBER_WORDS[n0]
+        ws.shift()
+      }
+      const u = ws[0]?.toLowerCase()
+      if (u && UNIT_WORDS[u]) {
+        measure = UNIT_WORDS[u]
+        ws.shift()
+      }
+      rest = ws.filter((w) => !FILLER.has(w.toLowerCase())).join(' ')
+      return { text: t, qty: Number.isFinite(qty) && qty > 0 ? qty : 1, measure, name: rest.trim() }
+    })
+    .filter((l) => l.name)
+}
+
+/**
+ * The food a typed name most likely means: every typed word should start a word of the food's name
+ * ("wheat roti" → "Wheat roti (chapati)", "eggs" → "Egg, raw"). The default (starter) food wins a tie, so a
+ * brand is used only when you type it ("50g amul paneer") or pick it on the line; then the shorter, plainer
+ * name ("Paneer" over "Paneer tikka").
+ */
+export function matchFood(name: string, foods: Food[]): Food | undefined {
+  const want = words(name).map(stem)
+  if (!want.length) return undefined
+  let best: { f: Food; score: number } | undefined
+  for (const f of foods) {
+    if (f.recipe) continue
+    const have = words(foodTitle(f)).map(stem)
+    const hits = want.filter((w) => have.some((h) => h.startsWith(w) || (w.startsWith(h) && h.length >= 3))).length
+    if (hits < want.length) continue
+    const score = hits * 1000 - (have.length - hits) * 10 + (f.sample ? 5 : 0)
+    if (!best || score > best.score || (score === best.score && foodTitle(f).length < foodTitle(best.f).length)) best = { f, score }
+  }
+  return best?.f
+}
+
+const hasWords = (want: string[], f: Food) => {
+  const have = words(foodTitle(f)).map(stem)
+  return want.every((w) => have.some((h) => h.startsWith(w) || (w.startsWith(h) && h.length >= 3)))
+}
+/** "Egg, raw" → egg; "Wheat roti (chapati)" → wheat roti: the kind of food, before any comma or bracket. */
+const kindWords = (f: Food) => words(f.name.split(/[,(]/)[0]).map(stem)
+
+/**
+ * Brands you could use for an ingredient line: the default food first, then your own foods of the same kind
+ * (your Amul paneer for Paneer, your farm eggs for Egg). Empty when there's nothing to choose between.
+ */
+export function brandChoices(item: Pick<RecipeItem, 'foodId' | 'defaultId'>, foods: Food[]): Food[] {
+  const byId = (id?: string) => (id ? foods.find((f) => f.id === id) : undefined)
+  const current = byId(item.foodId)
+  const def = byId(item.defaultId) ?? (current?.sample ? current : undefined)
+  const base = def ?? current
+  if (!base) return []
+  const kind = kindWords(base)
+  const own = foods.filter((f) => !f.recipe && !f.sample && f.id !== def?.id && hasWords(kind, f))
+  const list = [...(def ? [def] : []), ...own]
+  if (current && !list.includes(current)) list.unshift(current)
+  return list.length > 1 ? list : []
+}
+
+/** Switch a line to another food of the same kind, keeping the amount: 2 eggs stay 2 eggs, 50 g stays 50 g. */
+export function swapFood(item: RecipeItem, from: Food | undefined, to: Food, defaultId?: string): RecipeItem {
+  const next = { ...item, foodId: to.id, name: foodTitle(to), defaultId: to.id === defaultId ? undefined : defaultId }
+  const ms = measuresFor(to)
+  if (ms.includes(item.measure)) return next
+  const count = item.measure === 'portion' || item.measure === 'pc'
+  if (count && ms.includes('portion')) return { ...next, measure: 'portion' }
+  if (count && to.unit === 'pc') return { ...next, measure: 'pc' }
+  const amount = from && itemAmount(item, from)
+  if (amount !== undefined && (to.unit === 'g' || to.unit === 'ml')) return { ...next, measure: to.unit, qty: +amount.toFixed(1) }
+  return { ...next, measure: ms[0], qty: 1 }
+}
+
+/** Turn a typed line into a recipe line for a food: "50g" stays grams; "2 eggs" counts portions or pieces. */
+export function typedItem(line: TypedLine, f: Food): RecipeItem {
+  const measures = measuresFor(f)
+  let measure: IngredientMeasure
+  if (line.measure && measures.includes(line.measure)) measure = line.measure
+  else if (line.measure === 'pc' && measures.includes('portion')) measure = 'portion'
+  else if (!line.measure && measures.includes('portion')) measure = 'portion'
+  else if (!line.measure && f.unit === 'pc') measure = 'pc'
+  else measure = line.measure === 'g' || line.measure === 'ml' ? (f.unit === 'pc' ? 'pc' : (f.unit as IngredientMeasure)) : measures[measures.length - 1]
+  // No unit and no portion: "1 paneer" means nothing in grams, so start from 100 g and let you change it.
+  const qty = !line.measure && (measure === 'g' || measure === 'ml') ? 100 : line.qty
+  return { foodId: f.id, name: foodTitle(f), qty, measure }
+}
 
 export const foodTitle = (f: { name: string; brand?: string }) => (f.brand ? `${f.name} · ${f.brand}` : f.name)
