@@ -6,11 +6,12 @@
 // - Dishes (dal, chicken tikka, paneer tikka, milk coffee) have no open lab values that match a home
 //   recipe, so they are worked out from those USDA ingredients with the recipe written in `source`.
 //   Treat them as estimates and edit them to match how you cook or order them.
-import type { Food, FoodUnit, Nutrients } from './types'
+import { mixNutrients } from './nutrition'
+import type { Food, FoodUnit, Nutrients, RecipeItem } from './types'
 
 const SR = 'USDA FoodData Central, SR Legacy: '
 
-function f(id: string, name: string, n: Nutrients, source: string, opts: { unit?: FoodUnit; per?: number; serving?: [string, number] } = {}): Food {
+function f(id: string, name: string, n: Nutrients, source: string, opts: { unit?: FoodUnit; per?: number; serving?: [string, number]; tsp?: number } = {}): Food {
   return {
     id: 'food-' + id,
     name,
@@ -18,6 +19,7 @@ function f(id: string, name: string, n: Nutrients, source: string, opts: { unit?
     per: opts.per ?? 100,
     n,
     serving: opts.serving ? { label: opts.serving[0], amount: opts.serving[1] } : undefined,
+    tsp: opts.tsp,
     source,
     sample: true,
     createdAt: 0,
@@ -31,7 +33,10 @@ export const SEED_FOODS: Food[] = [
   // 150 ml brewed coffee + 50 ml whole milk + 1 tsp (4 g) sugar = 48 kcal per 200 ml cup.
   f('coffee-milk', 'Coffee with milk and sugar', { kcal: 24, protein: 0.8, carbs: 3.2, sugar: 3.2, addedSugar: 2, fat: 0.8, sodium: 12 }, 'Estimate from USDA: 150 ml brewed coffee, 50 ml whole milk, 4 g sugar per 200 ml cup', { unit: 'ml', serving: ['1 cup', 200] }),
   f('milk-whole', 'Milk, whole', { kcal: 61, protein: 3.2, carbs: 4.8, sugar: 5.1, fat: 3.3, satFat: 1.9, cholesterol: 10, sodium: 43 }, SR + 'Milk, whole, 3.25% milkfat, with added vitamin D', { unit: 'ml', serving: ['1 glass', 250] }),
-  f('sugar', 'Sugar', { kcal: 387, carbs: 100, sugar: 100, addedSugar: 100 }, SR + 'Sugars, granulated', { serving: ['1 tsp', 4] }),
+  f('sugar', 'Sugar', { kcal: 387, carbs: 100, sugar: 100, addedSugar: 100 }, SR + 'Sugars, granulated', { serving: ['1 tsp', 4], tsp: 4 }),
+  // A level teaspoon of instant coffee weighs about 1.8 g (USDA household measure). Swap in your jar's label.
+  f('coffee-instant', 'Instant coffee powder', { kcal: 353, protein: 12.2, carbs: 75.4, sugar: 0, fat: 0.5, fibre: 0, sodium: 37 }, SR + 'Beverages, coffee, instant, regular, powder', { serving: ['1 tsp', 1.8], tsp: 1.8 }),
+  f('water', 'Water', { kcal: 0, sodium: 4 }, SR + 'Beverages, water, tap, drinking', { unit: 'ml', serving: ['1 glass', 250] }),
 
   // Breads, rice, dal
   f('roti', 'Wheat roti (chapati)', { kcal: 299, protein: 7.9, carbs: 46.1, sugar: 2.9, fat: 9.2, fibre: 9.7, sodium: 298 }, SR + 'Bread, chapati or roti, whole wheat, commercially prepared, frozen (FDC 174075)', { serving: ['1 roti', 40] }),
@@ -49,9 +54,15 @@ export const SEED_FOODS: Food[] = [
   f('chicken-tikka', 'Chicken tikka', { kcal: 173, protein: 26.7, carbs: 1.5, fat: 6.4, satFat: 1.3, sodium: 380 }, 'Estimate from USDA: 85 g roasted chicken breast, 10 g whole-milk yogurt, 3 g oil per 100 g, with salt and spices', { serving: ['6 pieces', 150] }),
   // 70 g paneer (about 265 kcal, 18 g protein, 21 g fat per 100 g) + 25 g peppers and onion + 3 g oil + 2 g yogurt.
   f('paneer-tikka', 'Paneer tikka', { kcal: 222, protein: 13, carbs: 3.6, sugar: 1.6, fat: 17.8, satFat: 9.5, fibre: 0.6, sodium: 300 }, 'Estimate: 70 g paneer (as on a typical full-fat pack), 25 g peppers and onion, 3 g oil per 100 g. Swap in your paneer label for accuracy', { serving: ['6 pieces', 150] }),
+  // Raw egg for cooking (bhurji, omelette, egg roll); the oil goes in as its own ingredient.
+  f('egg-raw', 'Egg, raw', { kcal: 143, protein: 12.6, carbs: 0.7, sugar: 0.4, fat: 9.5, satFat: 3.1, cholesterol: 372, sodium: 142 }, SR + 'Egg, whole, raw, fresh', { serving: ['1 egg', 50] }),
+  // There is no USDA entry for paneer; these are typical values on an Indian full-fat paneer pack.
+  f('paneer', 'Paneer', { kcal: 265, protein: 18.3, carbs: 1.2, fat: 20.8, satFat: 13, sodium: 25 }, 'Estimate: typical full-fat paneer pack, per 100 g. Swap in your own pack label for accuracy'),
   f('egg-boiled', 'Egg, boiled', { kcal: 155, protein: 12.6, carbs: 1.1, sugar: 1.1, fat: 10.6, satFat: 3.3, cholesterol: 373, sodium: 124 }, SR + 'Egg, whole, cooked, hard-boiled', { serving: ['1 egg', 50] }),
   f('curd', 'Curd (plain yogurt)', { kcal: 61, protein: 3.5, carbs: 4.7, sugar: 4.7, fat: 3.3, satFat: 2.1, cholesterol: 13, sodium: 46 }, SR + 'Yogurt, plain, whole milk', { serving: ['1 katori', 150] }),
-  f('ghee', 'Ghee', { kcal: 876, fat: 99.5, satFat: 61.9, cholesterol: 256 }, SR + 'Butter oil, anhydrous', { serving: ['1 tsp', 5] }),
+  f('ghee', 'Ghee', { kcal: 876, fat: 99.5, satFat: 61.9, cholesterol: 256 }, SR + 'Butter oil, anhydrous', { serving: ['1 tsp', 5], tsp: 5 }),
+  f('oil', 'Cooking oil (vegetable)', { kcal: 884, fat: 100, satFat: 15.6, transFat: 0.5 }, SR + 'Oil, soybean, salad or cooking', { serving: ['1 tsp', 4.5], tsp: 4.5 }),
+  f('onion', 'Onion', { kcal: 40, protein: 1.1, carbs: 9.3, sugar: 4.2, fibre: 1.7, fat: 0.1, sodium: 4 }, SR + 'Onions, raw', { serving: ['1 onion', 110] }),
 
   // Fruit and nuts
   f('banana', 'Banana', { kcal: 89, protein: 1.1, carbs: 22.8, sugar: 12.2, fat: 0.3, fibre: 2.6, sodium: 1 }, SR + 'Bananas, raw', { serving: ['1 medium', 118] }),
@@ -59,3 +70,26 @@ export const SEED_FOODS: Food[] = [
   f('almonds', 'Almonds', { kcal: 579, protein: 21.2, carbs: 21.6, sugar: 4.4, fat: 49.9, satFat: 3.8, fibre: 12.5, sodium: 1 }, SR + 'Nuts, almonds', { serving: ['10 almonds', 12] }),
   f('cashews', 'Cashews', { kcal: 553, protein: 18.2, carbs: 30.2, sugar: 5.9, fat: 43.9, satFat: 7.8, fibre: 3.3, sodium: 12 }, SR + 'Nuts, cashew nuts, raw', { serving: ['10 cashews', 15] }),
 ]
+
+/** A starter recipe, worked out from the starter foods above. */
+function recipe(id: string, name: string, items: RecipeItem[], servings = 1): Food {
+  const byId = new Map(SEED_FOODS.map((x) => [x.id, x]))
+  return {
+    ...f(id, name, mixNutrients(items, (k) => byId.get(k), servings).n, 'Recipe from the starter foods; edit the amounts to match how you make it', { unit: 'srv', per: 1 }),
+    recipe: { items, servings },
+  }
+}
+
+SEED_FOODS.push(
+  recipe('recipe-instant-coffee', 'Instant coffee', [
+    { foodId: 'food-coffee-instant', name: 'Instant coffee powder', qty: 1, measure: 'tbsp' },
+    { foodId: 'food-water', name: 'Water', qty: 100, measure: 'ml' },
+  ]),
+  // A home-cooked dish: 1 roti + 2 eggs + 50 g paneer, cooked in 1 tsp oil.
+  recipe('recipe-egg-paneer-roll', 'Egg paneer roll', [
+    { foodId: 'food-roti', name: 'Wheat roti (chapati)', qty: 1, measure: 'portion' },
+    { foodId: 'food-egg-raw', name: 'Egg, raw', qty: 2, measure: 'portion' },
+    { foodId: 'food-paneer', name: 'Paneer', qty: 50, measure: 'g' },
+    { foodId: 'food-oil', name: 'Cooking oil (vegetable)', qty: 1, measure: 'tsp' },
+  ]),
+)

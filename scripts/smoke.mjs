@@ -124,7 +124,7 @@ try {
   })
 
   await step('create own exercise from the list', async () => {
-    await page.getByRole('button', { name: 'New' }).click()
+    await page.getByRole('button', { name: 'New', exact: true }).click()
     await page.getByLabel('Name').fill('Incline Smith squeeze press')
     await page.getByRole('button', { name: 'Add cue' }).click()
     await page.getByLabel('Cue 1', { exact: true }).fill('Squeeze dumbbells together the whole rep')
@@ -342,7 +342,7 @@ try {
     await page.getByTestId('kcal-total').getByText('239').waitFor()
     // A branded snack from the back of the pack: 170 kcal per 30 g serving, with a photo.
     await page.getByRole('button', { name: 'Add to Snacks' }).click()
-    await page.getByRole('button', { name: 'New' }).click()
+    await page.getByRole('button', { name: 'New', exact: true }).click()
     await page.getByLabel('Name', { exact: true }).fill('Salted cashews')
     await page.getByLabel('Brand').fill('Happilo')
     const png = await page.evaluate(() => {
@@ -388,7 +388,7 @@ try {
     await shot('29-health')
     // Counted by the piece: one Kathi roll at 420 kcal.
     await page.getByRole('button', { name: 'Add to Dinner' }).click()
-    await page.getByRole('button', { name: 'New' }).click()
+    await page.getByRole('button', { name: 'New', exact: true }).click()
     await page.getByLabel('Name', { exact: true }).fill('Chicken Kathi roll')
     await page.getByRole('tab', { name: 'piece' }).click()
     if ((await page.getByLabel('Values per').inputValue()) !== '1') throw new Error('per should switch to 1 for pieces')
@@ -514,6 +514,101 @@ try {
     await page.getByText('Bent-over row, overhand').first().waitFor({ timeout: 8000 })
     await page.getByLabel('Search library').fill('')
     await ctx2.close()
+  })
+
+  await step('health: a coffee recipe measured by the spoon', async () => {
+    await page.getByRole('navigation').getByRole('button', { name: 'Health' }).click()
+    // The jar first, with the values from its label: 250 kcal per 100 g.
+    await page.getByRole('button', { name: 'My foods' }).click()
+    await page.getByRole('button', { name: 'New', exact: true }).click()
+    await page.getByLabel('Name', { exact: true }).fill('Nescafe Classic')
+    await page.getByLabel(/^Calories/).fill('250')
+    await page.getByLabel(/^Carbs/).fill('40')
+    await page.getByLabel(/^Sodium/).fill('100')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    // The recipe: tablespoons of coffee and 100 ml of water.
+    await page.getByRole('button', { name: 'New dish or recipe' }).click()
+    await page.getByLabel('Name', { exact: true }).fill('Morning coffee')
+    await page.getByRole('button', { name: 'Add ingredient' }).click()
+    await page.getByLabel('Search ingredients').fill('nescafe')
+    await page.getByRole('dialog').getByRole('button', { name: /Nescafe Classic/ }).click()
+    await page.getByText('Set how much a teaspoon weighs').waitFor()
+    await page.getByRole('tab', { name: 'tbsp' }).click()
+    await page.getByLabel('1 tsp weighs').fill('2')
+    await page.getByText('6 g · 15 kcal').waitFor()
+    await page.getByRole('button', { name: 'Add ingredient' }).click()
+    await page.getByLabel('Search ingredients').fill('water')
+    await page.getByRole('dialog').getByRole('button', { name: /^Water/ }).click()
+    await page.getByTestId('recipe-kcal').getByText('15', { exact: true }).waitFor()
+    await shot('34-recipe-edit')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.getByRole('button', { name: /Morning coffee Recipe/ }).waitFor()
+    await page.getByRole('button', { name: 'Back' }).first().click()
+    // Log it with 3 tbsp this time: 18 g of coffee is 45 kcal.
+    await page.getByRole('button', { name: 'Add to Breakfast' }).click()
+    await page.getByLabel('Search foods').fill('morning coffee')
+    await page.getByRole('button', { name: /Morning coffee/ }).click()
+    await page.getByRole('dialog').getByRole('textbox', { name: 'Nescafe Classic', exact: true }).fill('3')
+    await page.getByTestId('recipe-kcal').getByText('45', { exact: true }).waitFor()
+    await page.getByRole('dialog').getByText('Sodium').waitFor()
+    await shot('35-recipe-log')
+    await page.getByRole('button', { name: 'Add to Breakfast' }).click()
+    await page.getByTestId('kcal-total').getByText('761').waitFor()
+    await page.getByText('3 tbsp Nescafe Classic + 100 ml Water').waitFor()
+    // Next time it starts from last time's mix.
+    await page.getByRole('button', { name: 'Add food' }).click()
+    await page.getByRole('region', { name: 'Recent' }).getByRole('button', { name: /Morning coffee/ }).click()
+    await page.getByTestId('recipe-kcal').getByText('45', { exact: true }).waitFor()
+    await page.getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('button', { name: 'Back' }).first().click()
+    // The starter recipe: 1 tbsp instant coffee (5.4 g) + 100 ml water is 19 kcal.
+    await page.getByRole('button', { name: 'My foods' }).click()
+    await page.getByLabel('Search foods').fill('instant coffee')
+    await page.getByRole('button', { name: /Instant coffee Recipe · 19 kcal/ }).waitFor()
+    await page.getByRole('button', { name: 'Back' }).first().click()
+  })
+
+  await step('health: a home-cooked dish typed as its ingredients', async () => {
+    await page.getByRole('navigation').getByRole('button', { name: 'Health' }).click()
+    await page.getByRole('button', { name: 'My foods' }).click()
+    // A paneer brand of your own, at 300 kcal per 100 g; the starter Paneer stays the default.
+    await page.getByRole('button', { name: 'New', exact: true }).click()
+    await page.getByLabel('Name', { exact: true }).fill('Paneer')
+    await page.getByLabel('Brand').fill('Amul')
+    await page.getByLabel(/^Calories/).fill('300')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.getByRole('button', { name: 'New dish or recipe' }).click()
+    await page.getByLabel('Name', { exact: true }).fill('Egg roll at home')
+    // 1 roti (40 g, 120 kcal) + 2 raw eggs (100 g, 143 kcal) + 50 g paneer (133 kcal) = 395 kcal.
+    await page.getByLabel('Type what went in').fill('1 wheat roti, 2 eggs, 50gm paneer, 1 cup unicorn')
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.getByText('No food found for 1 cup unicorn').waitFor()
+    await page.getByRole('listitem', { name: 'Egg, raw' }).getByText('100 g · 143 kcal').waitFor()
+    await page.getByRole('tab', { name: 'roti' }).waitFor()
+    await page.getByTestId('recipe-kcal').getByText('395', { exact: true }).waitFor()
+    // Pick the brand on the line: 50 g of Amul is 150 kcal, so 413; back to the default is 395 again.
+    const brand = page.getByRole('listitem', { name: 'Paneer' }).getByLabel('Brand')
+    await brand.selectOption({ label: 'Amul · 300 kcal / 100 g' })
+    await page.getByTestId('recipe-kcal').getByText('413', { exact: true }).waitFor()
+    await page.getByRole('listitem', { name: 'Paneer · Amul' }).scrollIntoViewIfNeeded()
+    await shot('37-dish-brand')
+    await page.getByRole('listitem', { name: 'Paneer · Amul' }).getByLabel('Brand').selectOption({ index: 0 })
+    await page.getByTestId('recipe-kcal').getByText('395', { exact: true }).waitFor()
+    await shot('36-dish-typed')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.getByRole('button', { name: /Egg roll at home Recipe · 395 kcal/ }).waitFor()
+    // The starter dish adds 1 tsp of oil: 435 kcal.
+    await page.getByLabel('Search foods').fill('egg paneer')
+    await page.getByRole('button', { name: /Egg paneer roll Recipe · 435 kcal/ }).waitFor()
+    await page.getByRole('button', { name: 'Back' }).first().click()
+    // Log it with 3 eggs this time.
+    await page.getByRole('button', { name: 'Add food' }).click()
+    await page.getByLabel('Search foods').fill('egg roll at home')
+    await page.getByRole('button', { name: /Egg roll at home/ }).click()
+    await page.getByRole('dialog').getByRole('textbox', { name: 'Egg, raw', exact: true }).fill('3')
+    await page.getByTestId('recipe-kcal').getByText('467', { exact: true }).waitFor()
+    await page.getByRole('dialog').getByRole('button', { name: /^Add to/ }).click()
+    await page.getByText('1 × Wheat roti (chapati) + 3 × Egg, raw + 50 g Paneer').waitFor()
   })
 
   await step('data survives reload', async () => {
