@@ -2221,3 +2221,10 @@ p.warn {
 .warn-ink {
   color: var(--warn-ink);
 }
+.brand-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  font-size: 14px;
+}
+.brand-row select {
+  min-width: 0;
+}

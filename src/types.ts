@@ -180,6 +180,8 @@ export interface RecipeItem {
   name: string
   qty: number
   measure: IngredientMeasure
+  /** When a brand was picked for this line, the default (starter) food it replaced, so you can switch back. */
+  defaultId?: string
 }
 
 /** A recipe is a food made of other foods. Its `n` is worked out from the ingredients for one serving. */

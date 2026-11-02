@@ -294,8 +294,9 @@ export function parseTyped(text: string): TypedLine[] {
 
 /**
  * The food a typed name most likely means: every typed word should start a word of the food's name
- * ("wheat roti" → "Wheat roti (chapati)", "eggs" → "Egg, raw"). Your own foods win over starter ones,
- * then the shorter, plainer name ("Paneer" over "Paneer tikka").
+ * ("wheat roti" → "Wheat roti (chapati)", "eggs" → "Egg, raw"). The default (starter) food wins a tie, so a
+ * brand is used only when you type it ("50g amul paneer") or pick it on the line; then the shorter, plainer
+ * name ("Paneer" over "Paneer tikka").
  */
 export function matchFood(name: string, foods: Food[]): Food | undefined {
   const want = words(name).map(stem)
@@ -306,10 +307,47 @@ export function matchFood(name: string, foods: Food[]): Food | undefined {
     const have = words(foodTitle(f)).map(stem)
     const hits = want.filter((w) => have.some((h) => h.startsWith(w) || (w.startsWith(h) && h.length >= 3))).length
     if (hits < want.length) continue
-    const score = hits * 1000 - (have.length - hits) * 10 + (f.sample ? 0 : 5)
+    const score = hits * 1000 - (have.length - hits) * 10 + (f.sample ? 5 : 0)
     if (!best || score > best.score || (score === best.score && foodTitle(f).length < foodTitle(best.f).length)) best = { f, score }
   }
   return best?.f
+}
+
+const hasWords = (want: string[], f: Food) => {
+  const have = words(foodTitle(f)).map(stem)
+  return want.every((w) => have.some((h) => h.startsWith(w) || (w.startsWith(h) && h.length >= 3)))
+}
+/** "Egg, raw" → egg; "Wheat roti (chapati)" → wheat roti: the kind of food, before any comma or bracket. */
+const kindWords = (f: Food) => words(f.name.split(/[,(]/)[0]).map(stem)
+
+/**
+ * Brands you could use for an ingredient line: the default food first, then your own foods of the same kind
+ * (your Amul paneer for Paneer, your farm eggs for Egg). Empty when there's nothing to choose between.
+ */
+export function brandChoices(item: Pick<RecipeItem, 'foodId' | 'defaultId'>, foods: Food[]): Food[] {
+  const byId = (id?: string) => (id ? foods.find((f) => f.id === id) : undefined)
+  const current = byId(item.foodId)
+  const def = byId(item.defaultId) ?? (current?.sample ? current : undefined)
+  const base = def ?? current
+  if (!base) return []
+  const kind = kindWords(base)
+  const own = foods.filter((f) => !f.recipe && !f.sample && f.id !== def?.id && hasWords(kind, f))
+  const list = [...(def ? [def] : []), ...own]
+  if (current && !list.includes(current)) list.unshift(current)
+  return list.length > 1 ? list : []
+}
+
+/** Switch a line to another food of the same kind, keeping the amount: 2 eggs stay 2 eggs, 50 g stays 50 g. */
+export function swapFood(item: RecipeItem, from: Food | undefined, to: Food, defaultId?: string): RecipeItem {
+  const next = { ...item, foodId: to.id, name: foodTitle(to), defaultId: to.id === defaultId ? undefined : defaultId }
+  const ms = measuresFor(to)
+  if (ms.includes(item.measure)) return next
+  const count = item.measure === 'portion' || item.measure === 'pc'
+  if (count && ms.includes('portion')) return { ...next, measure: 'portion' }
+  if (count && to.unit === 'pc') return { ...next, measure: 'pc' }
+  const amount = from && itemAmount(item, from)
+  if (amount !== undefined && (to.unit === 'g' || to.unit === 'ml')) return { ...next, measure: to.unit, qty: +amount.toFixed(1) }
+  return { ...next, measure: ms[0], qty: 1 }
 }
 
 /** Turn a typed line into a recipe line for a food: "50g" stays grams; "2 eggs" counts portions or pieces. */

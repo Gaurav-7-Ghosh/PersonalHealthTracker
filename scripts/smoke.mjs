@@ -571,6 +571,12 @@ try {
   await step('health: a home-cooked dish typed as its ingredients', async () => {
     await page.getByRole('navigation').getByRole('button', { name: 'Health' }).click()
     await page.getByRole('button', { name: 'My foods' }).click()
+    // A paneer brand of your own, at 300 kcal per 100 g; the starter Paneer stays the default.
+    await page.getByRole('button', { name: 'New', exact: true }).click()
+    await page.getByLabel('Name', { exact: true }).fill('Paneer')
+    await page.getByLabel('Brand').fill('Amul')
+    await page.getByLabel(/^Calories/).fill('300')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
     await page.getByRole('button', { name: 'New dish or recipe' }).click()
     await page.getByLabel('Name', { exact: true }).fill('Egg roll at home')
     // 1 roti (40 g, 120 kcal) + 2 raw eggs (100 g, 143 kcal) + 50 g paneer (133 kcal) = 395 kcal.
@@ -579,6 +585,14 @@ try {
     await page.getByText('No food found for 1 cup unicorn').waitFor()
     await page.getByRole('listitem', { name: 'Egg, raw' }).getByText('100 g · 143 kcal').waitFor()
     await page.getByRole('tab', { name: 'roti' }).waitFor()
+    await page.getByTestId('recipe-kcal').getByText('395', { exact: true }).waitFor()
+    // Pick the brand on the line: 50 g of Amul is 150 kcal, so 413; back to the default is 395 again.
+    const brand = page.getByRole('listitem', { name: 'Paneer' }).getByLabel('Brand')
+    await brand.selectOption({ label: 'Amul · 300 kcal / 100 g' })
+    await page.getByTestId('recipe-kcal').getByText('413', { exact: true }).waitFor()
+    await page.getByRole('listitem', { name: 'Paneer · Amul' }).scrollIntoViewIfNeeded()
+    await shot('37-dish-brand')
+    await page.getByRole('listitem', { name: 'Paneer · Amul' }).getByLabel('Brand').selectOption({ index: 0 })
     await page.getByTestId('recipe-kcal').getByText('395', { exact: true }).waitFor()
     await shot('36-dish-typed')
     await page.getByRole('button', { name: 'Save', exact: true }).click()

@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Chip, Confirm, Sheet, Stepper, TopBar } from '../components/ui'
 import { useStore } from '../store'
-import { MEALS, NUTRIENTS, dayLabel, fmtAmount, fmtNutrient, foodNutrients, foodTitle, grams, itemAmount, kcal, mealLabel, hasPortion, matchFood, measuresFor, mixNutrients, mixText, parseTyped, portionName, scale, typedItem } from '../nutrition'
+import { MEALS, NUTRIENTS, dayLabel, fmtAmount, fmtNutrient, foodNutrients, foodTitle, grams, itemAmount, kcal, mealLabel, brandChoices, hasPortion, matchFood, swapFood, measuresFor, mixNutrients, mixText, parseTyped, portionName, scale, typedItem } from '../nutrition'
 import type { Food, FoodLog, Meal, IngredientMeasure, Nutrients, RecipeItem } from '../types'
 import { uid } from '../util'
 import { FoodThumb } from './Health'
@@ -39,6 +39,7 @@ function useMixFoods() {
 
 /** The ingredient lines: amount, measure (tsp, tbsp, g, ml) and, for powders, how much a teaspoon weighs. */
 function MixRows({ items, onChange, lookup, setSpoon, onRemove }: { items: RecipeItem[]; onChange: (i: number, p: Partial<RecipeItem>) => void; lookup: (id: string) => Food | undefined; setSpoon: (id: string, v: number | undefined) => void; onRemove?: (i: number) => void }) {
+  const { foods } = useStore()
   return (
     <ul className="mix-list">
       {items.map((it, i) => {
@@ -56,6 +57,7 @@ function MixRows({ items, onChange, lookup, setSpoon, onRemove }: { items: Recip
                 </button>
               )}
             </div>
+            {f && <BrandPick item={it} food={f} foods={foods} onPick={(to, defaultId) => onChange(i, swapFood(it, f, to, defaultId))} />}
             {!f ? (
               <p className="warn small">This food was deleted, so it isn't counted. Remove it or add the food again.</p>
             ) : (
@@ -82,6 +84,26 @@ function MixRows({ items, onChange, lookup, setSpoon, onRemove }: { items: Recip
         )
       })}
     </ul>
+  )
+}
+
+/** Optional: which brand went in (your Amul paneer, your farm eggs). Left alone, the default food counts. */
+function BrandPick({ item, food, foods, onPick }: { item: RecipeItem; food: Food; foods: Food[]; onPick: (to: Food, defaultId: string | undefined) => void }) {
+  const choices = brandChoices(item, foods)
+  if (!choices.length) return null
+  const defaultId = item.defaultId ?? (food.sample ? food.id : undefined)
+  const id = 'brand-' + item.foodId + '-' + item.name.replace(/\W+/g, '-')
+  return (
+    <div className="per-row brand-row">
+      <label htmlFor={id}>Brand</label>
+      <select id={id} value={food.id} onChange={(e) => onPick(choices.find((c) => c.id === e.target.value)!, defaultId)}>
+        {choices.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.id === defaultId ? 'Default' : c.brand || c.name} · {kcal(c.n.kcal)} kcal / {fmtAmount(c.per, c.unit)}
+          </option>
+        ))}
+      </select>
+    </div>
   )
 }
 
