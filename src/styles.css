@@ -2088,6 +2088,20 @@ p.warn {
 .mix-total {
   gap: 6px;
 }
+.typed-ingredients {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+.typed-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.typed-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .nutri-list {
   margin: 0;
   display: grid;

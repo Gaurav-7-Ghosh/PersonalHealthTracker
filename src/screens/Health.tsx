@@ -463,7 +463,7 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
         <input placeholder="Search food or brand" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search foods" />
       </div>
       <button type="button" className="btn ghost" onClick={() => go({ name: 'recipeEdit', day, meal })}>
-        <Icon name="bowl" size={18} /> New recipe
+        <Icon name="bowl" size={18} /> New dish or recipe
       </button>
 
       {picking && !needle && recent.length > 0 && (
