@@ -207,6 +207,8 @@ export interface Food {
   n: Nutrients
   /** Grams (or ml) in one level teaspoon, for measuring this food by the spoon in recipes. */
   tsp?: number
+  /** An everyday cooking item (roti, eggs, paneer, oil): listed on its own in My foods and in the ingredient dropdown. */
+  cooking?: boolean
   /** Set when this food is a recipe of other foods; then unit is 'srv' and per is 1. */
   recipe?: Recipe
   /** A handy portion, e.g. 1 roti = 40 g. */
@@ -259,5 +261,5 @@ export type Route =
   | { name: 'settings' }
   | { name: 'health' }
   | { name: 'foods'; day?: string; meal?: Meal; pick?: string }
-  | { name: 'foodEdit'; id?: string; day?: string; meal?: Meal }
+  | { name: 'foodEdit'; id?: string; day?: string; meal?: Meal; cooking?: boolean }
   | { name: 'recipeEdit'; id?: string; day?: string; meal?: Meal }

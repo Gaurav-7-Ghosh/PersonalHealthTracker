@@ -611,6 +611,30 @@ try {
     await page.getByText('1 × Wheat roti (chapati) + 3 × Egg, raw + 50 g Paneer').waitFor()
   })
 
+  await step('health: cooking items in their own list and a dropdown for dishes', async () => {
+    await page.getByRole('navigation').getByRole('button', { name: 'Health' }).click()
+    await page.getByRole('button', { name: 'My foods' }).click()
+    await page.getByRole('group', { name: 'Show' }).getByRole('button', { name: 'Cooking items' }).click()
+    await page.getByRole('button', { name: /^Paneer/ }).first().waitFor()
+    if (await page.getByRole('button', { name: /Nescafe Classic/ }).count()) throw new Error('a packed jar shows under cooking items')
+    // New from this list starts as a cooking item.
+    await page.getByRole('button', { name: 'New', exact: true }).click()
+    await page.getByText('New cooking item').waitFor()
+    if (!(await page.getByLabel(/^Cooking item/).isChecked())) throw new Error('not ticked as a cooking item')
+    await page.getByLabel('Name', { exact: true }).fill('Multigrain roti')
+    await page.getByLabel(/^Calories/).fill('280')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.getByRole('button', { name: /Multigrain roti/ }).waitFor()
+    // It's in the dropdown when building a dish.
+    await page.getByRole('button', { name: 'New dish or recipe' }).click()
+    await page.getByLabel('Cooking item').selectOption({ label: 'Multigrain roti' })
+    await page.getByRole('listitem', { name: 'Multigrain roti' }).waitFor()
+    await shot('38-cooking-dropdown')
+    await page.getByRole('button', { name: 'Back' }).first().click()
+    await page.getByRole('group', { name: 'Show' }).getByRole('button', { name: 'All' }).click()
+    await page.getByRole('button', { name: 'Back' }).first().click()
+  })
+
   await step('data survives reload', async () => {
     await page.reload()
     await page.getByRole('navigation').getByRole('button', { name: 'History' }).click()
