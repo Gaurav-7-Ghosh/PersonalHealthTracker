@@ -18,6 +18,13 @@ export const fmtClock = (s: number) => {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 }
 
+/** Rest as people say it: "45 s", "2 min", "1 min 30 s". */
+export const fmtRest = (s: number) => {
+  const m = Math.floor(s / 60)
+  const r = Math.round(s % 60)
+  return m ? (r ? `${m} min ${r} s` : `${m} min`) : `${r} s`
+}
+
 export const fmtDuration = (ms: number) => {
   const m = Math.round(ms / 60000)
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`

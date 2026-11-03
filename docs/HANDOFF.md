@@ -33,6 +33,7 @@ Later it will add meal plans and macros, and Garmin data. It's a senior develope
 | Instagram and TikTok get a manual cover image | They don't share thumbnails without a developer account |
 | GitHub Pages, public repo | Free hosting; data never leaves the phone, only the code is public |
 | No router or state library; one `store.tsx` | Small app; fewer dependencies to keep offline |
+| Rest between sets is per exercise (`Entry.rest`), overridable per workout (`RoutineItem.rest`), falling back to the Settings defaults | Rest needs differ by lift (heavy compounds vs isolation); he asked to set it when adding workouts |
 | Calorie day = local calendar day (`YYYY-MM-DD`), turning over at midnight on the device; past days are kept | Gaurav asked for a counter that resets at 12 am; keeping days gives history for free |
 | A food stores the label's values for the amount printed (`per` + `unit`); a log stores grams eaten and a copy of those values | Labels in India print per 100 g or per serving; editing a food later must not rewrite past days |
 | Nutrient limits default to WHO guidance (ICMR-NIN where it agrees), scaled to the kcal goal where given as a share of energy, and are editable per marker | General adult guides, not medical advice; he can match them to his own targets |
@@ -63,6 +64,7 @@ See [CHANGELOG.md](../CHANGELOG.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [FLO
 - Health tab with daily calorie tracking: starter foods, your own branded foods with a pack photo, logging by grams, a daily counter that turns over at midnight, history by day. See flow 11 in [FLOWS.md](FLOWS.md).
 - Nutrients on the Health tab: sodium, sugar, added sugar, fibre, saturated and trans fat, cholesterol, protein, carbs and fat against daily limits (WHO-based defaults, editable per marker in `settings.nutrientGoals`), with a per-marker breakdown of which foods it came from. See flow 11.
 - Body map redrawn as a coloured front and back anatomy figure (each muscle group its own colour), in the style of a reference chart Gaurav shared; the drawing is original.
+- Rest timer per exercise: a Rest chip in the session picks the rest for that exercise (30 s to 5 min, or typed seconds); "Use every time" stores it on the exercise, and the exercise editor has the same picker. The running rest is a timestamp on the active session, so it survives locking the phone or a reload. iOS can't beep or vibrate for a backgrounded web app; a native wrapper (being looked into separately) could add a notification.
 - Release these as 0.2.0 when ready (see Releases in the README).
 
 ## Deploy setup

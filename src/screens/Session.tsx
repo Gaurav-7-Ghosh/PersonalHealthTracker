@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FormCard } from '../components/FormCard'
 import { Icon } from '../components/Icon'
-import { BookmarkButton, Chip, Confirm, Empty, RenameSheet, Sheet, Stepper } from '../components/ui'
-import { useStore } from '../store'
+import { BookmarkButton, Chip, Confirm, Empty, RenameSheet, RestPicker, Sheet, Stepper } from '../components/ui'
+import { entryRest, useStore } from '../store'
 import { rankSwaps, recentEntryIds } from '../swap'
 import type { Entry, SessionItem, SetLog } from '../types'
-import { ago, beep, fmtClock, fmtDate, fmtNum, keepAwake, vibrate } from '../util'
+import { ago, beep, fmtClock, fmtDate, fmtNum, fmtRest, keepAwake, vibrate } from '../util'
 import { fmtSet } from './EntryView'
 
 export function SessionScreen() {
   const store = useStore()
   const { active, entry, updateActive, finishActive, discardActive, lastSets, history, settings, replace, go } = store
-  const [restEnd, setRestEnd] = useState<number | null>(null)
   const [now, setNow] = useState(Date.now())
   const [swapOpen, setSwapOpen] = useState(false)
   const [planOpen, setPlanOpen] = useState(false)
@@ -19,6 +18,7 @@ export function SessionScreen() {
   const [finishing, setFinishing] = useState(false)
   const [delSet, setDelSet] = useState<number | null>(null)
   const [renaming, setRenaming] = useState(false)
+  const [restOpen, setRestOpen] = useState(false)
 
   useEffect(() => {
     keepAwake(true)
@@ -27,19 +27,33 @@ export function SessionScreen() {
     }
   }, [])
 
+  // The rest is a timestamp on the session, so the right time shows after locking the phone or switching apps.
+  // iOS pauses the page while it's hidden, so the beep can only sound while the app is open; on return a late rest says so instead.
+  const restEnd = active?.restEnd ?? null
+  const setRestEnd = (end: number | null) => updateActive((a) => ({ ...a, restEnd: end ?? undefined }))
+
   useEffect(() => {
     if (!restEnd) return
-    const t = window.setInterval(() => {
+    const tick = () => {
       const n = Date.now()
       setNow(n)
-      if (n >= restEnd) {
+      if (n < restEnd) return
+      if (n - restEnd < 3000) {
         beep(880, 200)
         setTimeout(() => beep(1175, 260), 220)
         vibrate([200, 100, 200])
-        setRestEnd(null)
+      } else if (n - restEnd < 10 * 60000) {
+        store.notify(`Rest finished ${fmtClock((n - restEnd) / 1000)} ago`)
       }
-    }, 250)
-    return () => window.clearInterval(t)
+      setRestEnd(null)
+    }
+    tick()
+    const t = window.setInterval(tick, 250)
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      window.clearInterval(t)
+      document.removeEventListener('visibilitychange', tick)
+    }
   }, [restEnd])
 
   const item: SessionItem | undefined = active?.items[active.current]
@@ -78,6 +92,11 @@ export function SessionScreen() {
   const nextEntry = nextItem ? entry(nextItem.entryId) : undefined
   const prev = item ? history(item.entryId)[0] : undefined
   const isMobility = e && e.kind !== 'strength'
+  const exerciseRest = e ? entryRest(e, settings) : settings.restStrength
+  const rest = item?.target.rest ?? exerciseRest
+
+  const setItemRest = (v: number | undefined) =>
+    updateActive((a) => ({ ...a, items: a.items.map((it, i) => (i === a.current ? { ...it, target: { ...it.target, rest: v } } : it)) }))
 
   const logSet = () => {
     if (!item || !e) return
@@ -86,9 +105,8 @@ export function SessionScreen() {
     if (e.measure === 'reps') Object.assign(s, { reps: cur.reps, tightness: isMobility ? cur.tightness : undefined })
     if (e.measure === 'hold') Object.assign(s, { hold: cur.hold, tightness: cur.tightness })
     if (e.measure === 'time') Object.assign(s, { hold: cur.hold })
-    updateActive((a) => ({ ...a, items: a.items.map((it, i) => (i === a.current ? { ...it, sets: [...it.sets, s] } : it)) }))
+    updateActive((a) => ({ ...a, restEnd: Date.now() + rest * 1000, items: a.items.map((it, i) => (i === a.current ? { ...it, sets: [...it.sets, s] } : it)) }))
     const doneAll = item.sets.length + 1 >= item.target.sets
-    setRestEnd(Date.now() + (isMobility ? settings.restMobility : settings.restStrength) * 1000)
     setNow(Date.now())
     if (doneAll && active.current < total - 1) store.notify('All sets done. Next exercise when ready.')
   }
@@ -168,8 +186,13 @@ export function SessionScreen() {
               </button>
             </div>
             {item.swappedFrom && <div className="muted small">Swapped from {entry(item.swappedFrom)?.name}</div>}
-            <div className="muted">
-              Target {item.target.sets} × {e.measure === 'hold' ? `${item.target.hold ?? 30} s` : item.target.reps ?? 10}
+            <div className="target-row muted">
+              <span>
+                Target {item.target.sets} × {e.measure === 'hold' ? `${item.target.hold ?? 30} s` : item.target.reps ?? 10}
+              </span>
+              <button type="button" className="rest-chip" aria-label={`Rest between sets: ${fmtRest(rest)}. Change`} onClick={() => setRestOpen(true)}>
+                <Icon name="timer" size={16} /> Rest {fmtRest(rest)}
+              </button>
             </div>
           </div>
           <RenameSheet entry={e} open={renaming} onClose={() => setRenaming(false)} />
@@ -253,6 +276,9 @@ export function SessionScreen() {
             <div className="rest" role="timer" aria-live="off">
               <span className="muted">Rest</span>
               <span className="rest-time">{fmtClock((restEnd! - now) / 1000)}</span>
+              <button type="button" className="btn small ghost" onClick={() => setRestEnd(Math.max(Date.now() + 1000, restEnd! - 15000))}>
+                −15 s
+              </button>
               <button type="button" className="btn small ghost" onClick={() => setRestEnd(restEnd! + 15000)}>
                 +15 s
               </button>
@@ -287,6 +313,40 @@ export function SessionScreen() {
 
       {e && item && (
         <SwapSheet open={swapOpen} onClose={() => setSwapOpen(false)} from={e} exclude={active.items.map((i) => i.entryId)} onPick={swapTo} onPark={park} canPark={total > 1} />
+      )}
+
+      {e && item && (
+        <Sheet open={restOpen} onClose={() => setRestOpen(false)} title="Rest between sets">
+          <RestPicker
+            value={item.target.rest}
+            fallback={exerciseRest}
+            onChange={(v) => {
+              setItemRest(v)
+              if (resting && v !== undefined) setRestEnd(Math.max(Date.now() + 1000, (restEnd ?? 0) + (v - rest) * 1000))
+            }}
+          />
+          <p className="muted small">
+            Applies to {e.name} in this workout. {e.rest !== undefined ? `Its usual rest is ${fmtRest(e.rest)}.` : `Default is ${fmtRest(exerciseRest)} for ${isMobility ? 'mobility' : 'strength'}, set in Settings.`}
+          </p>
+          <div className="stack">
+            <button
+              type="button"
+              className="btn primary"
+              disabled={rest === e.rest}
+              onClick={async () => {
+                await store.saveEntry({ ...e, rest, updatedAt: Date.now() })
+                setItemRest(undefined)
+                setRestOpen(false)
+                store.notify(`Rest for ${e.name} is now ${fmtRest(rest)} every time`)
+              }}
+            >
+              Use {fmtRest(rest)} every time for this exercise
+            </button>
+            <button type="button" className="btn ghost" onClick={() => setRestOpen(false)}>
+              Done
+            </button>
+          </div>
+        </Sheet>
       )}
 
       <Sheet open={formOpen} onClose={() => setFormOpen(false)} title={e?.name ?? ''}>

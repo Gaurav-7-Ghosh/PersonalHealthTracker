@@ -28,10 +28,11 @@ flowchart TD
 ```mermaid
 flowchart TD
   S["Session screen"] --> P["Prefill weight/reps<br/>this session's last set > last time > target"]
-  P --> L["Log set N"] --> R["Rest timer<br/>+15 s / Skip"] --> P
+  P --> L["Log set N"] --> R["Rest timer<br/>−15 s / +15 s / Skip"] --> P
   S --> LT["Last time card<br/>tap a set to copy it"]
   S --> SW["Busy? Swap<br/>mark equipment busy"] --> RS["rankSwaps()"] --> S
   S --> ADD["+ Add exercise"] --> BM["Body map flow"] --> S
+  S --> RT["Rest chip<br/>pick rest for this exercise"] --> S
   S --> FC["Form card sheet<br/>Edit form card"]
   S --> F["Finish"] --> SV["Save and finish / Keep going / Discard"]
   SV --> D["SessionDetail"]
@@ -42,6 +43,7 @@ flowchart TD
 - **Last time:** comes from `store.history(entryId)[0]`, the newest finished session that includes the exercise.
 - **Swaps:** the busy equipment is saved in `settings.busyEquipment` and reset when a new session starts. Swapping after logging sets inserts the new item after the current one. Swapping before any sets replaces it. The new item records `swappedFrom`.
 - **Renaming:** the pencil next to the name opens `RenameSheet`.
+- **Rest between sets:** the rest for the current exercise is `item.target.rest`, else `entry.rest`, else the Settings default for strength or mobility (`entryRest()` in `store.tsx`). The Rest chip under the name opens `RestPicker` (chips from 30 s to 5 min, or any value typed in seconds). The choice applies to this workout; "Use every time" saves it on the exercise. The exercise editor has the same picker. The running rest is stored as `active.restEnd` (a timestamp), so it shows the right time after locking the phone, switching apps or a reload. iOS pauses a hidden web app, so the beep only sounds if the app is open when the rest ends; coming back later shows "Rest finished … ago" instead. `navigator.vibrate` does nothing on iOS.
 
 ## 3. Build and edit a form card
 

@@ -3,11 +3,11 @@ import { FormCard } from '../components/FormCard'
 import { LinkThumb } from '../components/LinkThumb'
 import { Icon } from '../components/Icon'
 import { BookmarkButton, Empty, EntryPicker, RenameSheet, Sheet, Tag, TopBar } from '../components/ui'
-import { bestSet, useStore } from '../store'
+import { bestSet, entryRest, useStore } from '../store'
 import { rankSwaps, recentEntryIds } from '../swap'
 import { kindLabel, platformOf } from '../taxonomy'
 import type { Entry, SetLog } from '../types'
-import { fmtDate, fmtNum } from '../util'
+import { fmtDate, fmtNum, fmtRest } from '../util'
 
 export function fmtSet(s: SetLog, e: Entry) {
   if (e.measure === 'hold') return `${s.hold ?? 0} s${s.tightness ? ` · tight ${s.tightness}/5` : ''}`
@@ -246,7 +246,7 @@ export function EntryView({ id }: { id: string }) {
             </li>
           ))}
         </ul>
-        <p className="muted small">Rest timers use {settings.restStrength} s for strength and {settings.restMobility} s for mobility by default.</p>
+        <p className="muted small">Rest between sets for this exercise is {fmtRest(entryRest(e, settings))}. Change it from Edit, or during a workout.</p>
       </Sheet>
     </div>
   )
