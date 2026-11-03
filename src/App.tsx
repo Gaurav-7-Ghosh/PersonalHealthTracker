@@ -87,7 +87,7 @@ function Screen({ route }: { route: Route }) {
     case 'foods':
       return <FoodList key={(route.day ?? '') + (route.meal ?? '') + (route.pick ?? '')} day={route.day} meal={route.meal} pick={route.pick} />
     case 'foodEdit':
-      return <FoodEdit key={route.id ?? 'new'} id={route.id} day={route.day} meal={route.meal} />
+      return <FoodEdit key={route.id ?? 'new'} id={route.id} day={route.day} meal={route.meal} cooking={route.cooking} />
     case 'recipeEdit':
       return <RecipeEdit key={route.id ?? 'new'} id={route.id} day={route.day} meal={route.meal} />
   }

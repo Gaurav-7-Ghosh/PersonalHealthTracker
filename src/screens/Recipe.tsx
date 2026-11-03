@@ -154,6 +154,33 @@ function NutrientTable({ n, label }: { n: Nutrients; label: string }) {
   )
 }
 
+/** Your everyday cooking items (roti, eggs, paneer, oil) in one dropdown; picking one adds it as a line. */
+function CookingDropdown({ onPick }: { onPick: (f: Food) => void }) {
+  const { foods } = useStore()
+  const items = foods.filter((f) => f.cooking && !f.recipe).sort((a, b) => foodTitle(a).localeCompare(foodTitle(b)))
+  if (!items.length) return <p className="muted small">Tip: tick "Cooking item" on the foods you cook with (in My foods) to pick them from a dropdown here.</p>
+  return (
+    <div className="per-row brand-row">
+      <label htmlFor="cooking-pick">Cooking item</label>
+      <select
+        id="cooking-pick"
+        value=""
+        onChange={(e) => {
+          const f = items.find((x) => x.id === e.target.value)
+          if (f) onPick(f)
+        }}
+      >
+        <option value="">Pick one to add…</option>
+        {items.map((f) => (
+          <option key={f.id} value={f.id}>
+            {foodTitle(f)}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
 /** Pick an ingredient from your foods (not other recipes). */
 function IngredientPicker({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (f: Food) => void }) {
   const { foods } = useStore()
@@ -161,7 +188,7 @@ function IngredientPicker({ open, onClose, onPick }: { open: boolean; onClose: (
   const needle = q.trim().toLowerCase()
   const list = foods
     .filter((f) => !f.recipe && (!needle || f.name.toLowerCase().includes(needle) || f.brand?.toLowerCase().includes(needle)))
-    .sort((a, b) => Number(!!a.sample) - Number(!!b.sample) || a.name.localeCompare(b.name))
+    .sort((a, b) => Number(!b.cooking) - Number(!a.cooking) || Number(!!a.sample) - Number(!!b.sample) || a.name.localeCompare(b.name))
   return (
     <Sheet open={open} onClose={onClose} title="Add ingredient">
       <div className="search">
@@ -189,9 +216,11 @@ function IngredientPicker({ open, onClose, onPick }: { open: boolean; onClose: (
   )
 }
 
-/** A sensible first line for a new ingredient: 1 portion (1 roti, 1 egg) for a weighed food that has one, else spoons for powders, 100 ml for liquids, 1 for pieces. */
+/** A sensible first line for a new ingredient: 1 portion (1 roti, 1 egg) for a weighed food that has one, 100 g for other cooking items, else spoons for powders, 100 ml for liquids, 1 for pieces. */
 function firstItem(f: Food): RecipeItem {
   if (f.unit === 'g' && hasPortion(f)) return { foodId: f.id, name: foodTitle(f), qty: 1, measure: 'portion' }
+  // A cooking item weighed without a portion (a paneer block, atta) is measured in grams; a jar or powder by the spoon.
+  if (f.unit === 'g' && f.cooking && !f.tsp) return { foodId: f.id, name: foodTitle(f), qty: 100, measure: 'g' }
   const measure: IngredientMeasure = f.unit === 'g' ? 'tsp' : f.unit === 'ml' ? 'ml' : 'pc'
   return { foodId: f.id, name: foodTitle(f), qty: measure === 'ml' ? 100 : 1, measure }
 }
@@ -291,8 +320,9 @@ export function RecipeEdit({ id, day, meal }: { id?: string; day?: string; meal?
         <div className="section-head">
           <h2>Ingredients</h2>
         </div>
-        <p className="muted small">What you cooked it with: 1 roti, 2 eggs, 50 g paneer. Pick from your foods and the starter list, then say how much went in by the piece, spoon, gram or ml. A pack with a label goes under My foods first.</p>
+        <p className="muted small">What you cooked it with: 1 roti, 2 eggs, 50 g paneer. Type it, pick from your cooking items, or search all foods, then say how much went in by the piece, spoon, gram or ml. A pack with a label goes under My foods first.</p>
         <TypedIngredients onAdd={(xs) => setItems((cur) => [...cur, ...xs])} />
+        <CookingDropdown onPick={(f) => setItems((xs) => [...xs, firstItem(f)])} />
         <MixRows items={items} lookup={lookup} setSpoon={setSpoon} onChange={(i, p) => setItems((xs) => xs.map((x, k) => (k === i ? { ...x, ...p } : x)))} onRemove={(i) => setItems((xs) => xs.filter((_, k) => k !== i))} />
         <button type="button" className="btn ghost" onClick={() => setPicking(true)}>
           <Icon name="plus" size={18} /> Add ingredient

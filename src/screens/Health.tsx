@@ -423,10 +423,26 @@ function AmountSheet({ food, log, day, meal, onClose, onDone }: { food?: Food; l
   )
 }
 
+type FoodShow = 'all' | 'cooking' | 'recipes' | 'other'
+const FOOD_SHOWS: { id: FoodShow; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'cooking', label: 'Cooking items' },
+  { id: 'recipes', label: 'Dishes & recipes' },
+  { id: 'other', label: 'Snacks & packs' },
+]
+// Which list My foods last showed, kept while the app is open.
+let foodShow: FoodShow = 'all'
+
 /** All foods. With a day it's the picker: tap a food, set the amount, add. Without one it manages your foods. */
 export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?: string }) {
   const { foods, food, foodLog, go, resetTo } = useStore()
   const [q, setQ] = useState('')
+  // Logging always starts from every food; managing My foods comes back to the list you last looked at.
+  const [show, setShow] = useState<FoodShow>(day ? 'all' : foodShow)
+  const pickShow = (s: FoodShow) => {
+    if (!day) foodShow = s
+    setShow(s)
+  }
   const [picked, setPicked] = useState<Food | undefined>(() => (pick ? food(pick) : undefined))
   const picking = !!day
   const recent = useMemo(() => {
@@ -444,6 +460,7 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
   const needle = q.trim().toLowerCase()
   const list = foods
     .filter((f) => !needle || f.name.toLowerCase().includes(needle) || f.brand?.toLowerCase().includes(needle))
+    .filter((f) => show === 'all' || (show === 'cooking' ? f.cooking && !f.recipe : show === 'recipes' ? !!f.recipe : !f.cooking && !f.recipe))
     .sort((a, b) => Number(!!a.sample) - Number(!!b.sample) || a.name.localeCompare(b.name))
   const tap = (f: Food) => (picking ? setPicked(f) : go({ name: f.recipe ? 'recipeEdit' : 'foodEdit', id: f.id }))
 
@@ -453,7 +470,7 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
         title={picking ? `Add to ${mealLabel(meal ?? 'snack')}` : 'My foods'}
         sub={picking ? dayLabel(day!) : undefined}
         right={
-          <button type="button" className="btn small primary" onClick={() => go({ name: 'foodEdit', day, meal })}>
+          <button type="button" className="btn small primary" onClick={() => (show === 'recipes' ? go({ name: 'recipeEdit', day, meal }) : go({ name: 'foodEdit', day, meal, cooking: show === 'cooking' }))}>
             <Icon name="plus" size={16} /> New
           </button>
         }
@@ -465,8 +482,15 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
       <button type="button" className="btn ghost" onClick={() => go({ name: 'recipeEdit', day, meal })}>
         <Icon name="bowl" size={18} /> New dish or recipe
       </button>
+      <div className="chips" role="group" aria-label="Show">
+        {FOOD_SHOWS.map((s) => (
+          <Chip key={s.id} on={show === s.id} onClick={() => pickShow(s.id)}>
+            {s.label}
+          </Chip>
+        ))}
+      </div>
 
-      {picking && !needle && recent.length > 0 && (
+      {picking && !needle && show === 'all' && recent.length > 0 && (
         <section className="block" aria-label="Recent">
           <h2>Recent</h2>
           <div className="food-tiles">
@@ -482,7 +506,7 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
       )}
 
       <section className="block" aria-label="All foods">
-        {picking && !needle && recent.length > 0 && <h2>All foods</h2>}
+        {picking && !needle && show === 'all' && recent.length > 0 && <h2>All foods</h2>}
         <ul className="list compact">
           {list.map((f) => (
             <li key={f.id}>
@@ -492,6 +516,7 @@ export function FoodList({ day, meal, pick }: { day?: string; meal?: Meal; pick?
                   <span className="list-name">{f.name}</span>
                   <span className="list-sub">
                     {f.recipe ? 'Recipe · ' : f.brand ? `${f.brand} · ` : ''}
+                    {f.cooking && show !== 'cooking' ? 'Cooking item · ' : ''}
                     {f.recipe ? `${kcal(f.n.kcal)} kcal · ${mixText(f.recipe.items)}` : `${kcal(f.n.kcal)} kcal per ${fmtAmount(f.per, f.unit)}`}
                   </span>
                 </span>
@@ -528,7 +553,7 @@ const toNum = (t: string) => {
 }
 
 /** Create or edit a food: name, brand, a photo of the pack, and the label's values for the amount it prints. */
-export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: Meal }) {
+export function FoodEdit({ id, day, meal, cooking }: { id?: string; day?: string; meal?: Meal; cooking?: boolean }) {
   const { food, foods, saveFood, deleteFood, back, replace, notify } = useStore()
   const original = id ? food(id) : undefined
   const [d, setD] = useState<Draft>(() => {
@@ -545,6 +570,7 @@ export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: 
       n,
       servingLabel: f?.serving?.label ?? '',
       servingAmount: toText(f?.serving?.amount),
+      cooking: f ? f.cooking : cooking,
       source: f?.source,
       sample: f?.sample,
       createdAt: f?.createdAt ?? Date.now(),
@@ -598,6 +624,7 @@ export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: 
       per,
       n,
       serving: servingAmount ? { label: d.servingLabel.trim() || '1 serving', amount: servingAmount } : undefined,
+      cooking: d.cooking || undefined,
       source: d.source,
       sample: d.sample,
       createdAt: d.createdAt,
@@ -615,7 +642,7 @@ export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: 
   return (
     <div className="screen form">
       <TopBar
-        title={original ? 'Edit food' : 'New food'}
+        title={original ? (d.cooking ? 'Edit cooking item' : 'Edit food') : d.cooking ? 'New cooking item' : 'New food'}
         onBack={cancel}
         right={
           <button type="button" className="btn small primary" onClick={save} disabled={busy}>
@@ -647,6 +674,12 @@ export function FoodEdit({ id, day, meal }: { id?: string; day?: string; meal?: 
         </button>
       )}
       {twin && <p className="warn small">You already have {foodTitle(twin)}. Add a brand to tell them apart.</p>}
+      <label className="check">
+        <input id="food-cooking" type="checkbox" checked={!!d.cooking} onChange={(x) => set({ cooking: x.target.checked })} />
+        <span>
+          Cooking item <span className="muted small">· something you cook with (roti, eggs, paneer, oil). It gets its own list in My foods and shows in the ingredient dropdown for dishes.</span>
+        </span>
+      </label>
 
       <section className="block">
         <h2>Nutrition on the label</h2>

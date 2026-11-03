@@ -11,7 +11,7 @@ import type { Food, FoodUnit, Nutrients, RecipeItem } from './types'
 
 const SR = 'USDA FoodData Central, SR Legacy: '
 
-function f(id: string, name: string, n: Nutrients, source: string, opts: { unit?: FoodUnit; per?: number; serving?: [string, number]; tsp?: number } = {}): Food {
+function f(id: string, name: string, n: Nutrients, source: string, opts: { unit?: FoodUnit; per?: number; serving?: [string, number]; tsp?: number; cooking?: boolean } = {}): Food {
   return {
     id: 'food-' + id,
     name,
@@ -20,6 +20,7 @@ function f(id: string, name: string, n: Nutrients, source: string, opts: { unit?
     n,
     serving: opts.serving ? { label: opts.serving[0], amount: opts.serving[1] } : undefined,
     tsp: opts.tsp,
+    cooking: opts.cooking,
     source,
     sample: true,
     createdAt: 0,
@@ -32,37 +33,37 @@ export const SEED_FOODS: Food[] = [
   f('coffee-black', 'Coffee, black', { kcal: 1, protein: 0.1, carbs: 0, fat: 0, sodium: 2 }, SR + 'Beverages, coffee, brewed, prepared with tap water', { unit: 'ml', serving: ['1 cup', 200] }),
   // 150 ml brewed coffee + 50 ml whole milk + 1 tsp (4 g) sugar = 48 kcal per 200 ml cup.
   f('coffee-milk', 'Coffee with milk and sugar', { kcal: 24, protein: 0.8, carbs: 3.2, sugar: 3.2, addedSugar: 2, fat: 0.8, sodium: 12 }, 'Estimate from USDA: 150 ml brewed coffee, 50 ml whole milk, 4 g sugar per 200 ml cup', { unit: 'ml', serving: ['1 cup', 200] }),
-  f('milk-whole', 'Milk, whole', { kcal: 61, protein: 3.2, carbs: 4.8, sugar: 5.1, fat: 3.3, satFat: 1.9, cholesterol: 10, sodium: 43 }, SR + 'Milk, whole, 3.25% milkfat, with added vitamin D', { unit: 'ml', serving: ['1 glass', 250] }),
-  f('sugar', 'Sugar', { kcal: 387, carbs: 100, sugar: 100, addedSugar: 100 }, SR + 'Sugars, granulated', { serving: ['1 tsp', 4], tsp: 4 }),
+  f('milk-whole', 'Milk, whole', { kcal: 61, protein: 3.2, carbs: 4.8, sugar: 5.1, fat: 3.3, satFat: 1.9, cholesterol: 10, sodium: 43 }, SR + 'Milk, whole, 3.25% milkfat, with added vitamin D', { unit: 'ml', serving: ['1 glass', 250] , cooking: true }),
+  f('sugar', 'Sugar', { kcal: 387, carbs: 100, sugar: 100, addedSugar: 100 }, SR + 'Sugars, granulated', { serving: ['1 tsp', 4], tsp: 4 , cooking: true }),
   // A level teaspoon of instant coffee weighs about 1.8 g (USDA household measure). Swap in your jar's label.
-  f('coffee-instant', 'Instant coffee powder', { kcal: 353, protein: 12.2, carbs: 75.4, sugar: 0, fat: 0.5, fibre: 0, sodium: 37 }, SR + 'Beverages, coffee, instant, regular, powder', { serving: ['1 tsp', 1.8], tsp: 1.8 }),
-  f('water', 'Water', { kcal: 0, sodium: 4 }, SR + 'Beverages, water, tap, drinking', { unit: 'ml', serving: ['1 glass', 250] }),
+  f('coffee-instant', 'Instant coffee powder', { kcal: 353, protein: 12.2, carbs: 75.4, sugar: 0, fat: 0.5, fibre: 0, sodium: 37 }, SR + 'Beverages, coffee, instant, regular, powder', { serving: ['1 tsp', 1.8], tsp: 1.8 , cooking: true }),
+  f('water', 'Water', { kcal: 0, sodium: 4 }, SR + 'Beverages, water, tap, drinking', { unit: 'ml', serving: ['1 glass', 250] , cooking: true }),
 
   // Breads, rice, dal
-  f('roti', 'Wheat roti (chapati)', { kcal: 299, protein: 7.9, carbs: 46.1, sugar: 2.9, fat: 9.2, fibre: 9.7, sodium: 298 }, SR + 'Bread, chapati or roti, whole wheat, commercially prepared, frozen (FDC 174075)', { serving: ['1 roti', 40] }),
-  f('rice-white', 'White rice, cooked', { kcal: 130, protein: 2.7, carbs: 28.2, fat: 0.3, fibre: 0.4, sodium: 1 }, SR + 'Rice, white, long-grain, regular, enriched, cooked', { serving: ['1 cup', 160] }),
-  f('lentils', 'Lentils (dal), boiled, plain', { kcal: 116, protein: 9, carbs: 20.1, sugar: 1.8, fat: 0.4, fibre: 7.9, sodium: 2 }, SR + 'Lentils, mature seeds, cooked, boiled, without salt', { serving: ['1 katori', 150] }),
+  f('roti', 'Wheat roti (chapati)', { kcal: 299, protein: 7.9, carbs: 46.1, sugar: 2.9, fat: 9.2, fibre: 9.7, sodium: 298 }, SR + 'Bread, chapati or roti, whole wheat, commercially prepared, frozen (FDC 174075)', { serving: ['1 roti', 40] , cooking: true }),
+  f('rice-white', 'White rice, cooked', { kcal: 130, protein: 2.7, carbs: 28.2, fat: 0.3, fibre: 0.4, sodium: 1 }, SR + 'Rice, white, long-grain, regular, enriched, cooked', { serving: ['1 cup', 160] , cooking: true }),
+  f('lentils', 'Lentils (dal), boiled, plain', { kcal: 116, protein: 9, carbs: 20.1, sugar: 1.8, fat: 0.4, fibre: 7.9, sodium: 2 }, SR + 'Lentils, mature seeds, cooked, boiled, without salt', { serving: ['1 katori', 150] , cooking: true }),
   // 97 g boiled lentils + 3 g ghee, salt and spices.
   f('dal-tadka', 'Dal tadka', { kcal: 139, protein: 8.7, carbs: 19.5, sugar: 1.7, fat: 3.4, satFat: 1.9, fibre: 7.7, sodium: 250 }, 'Estimate from USDA: 97 g boiled lentils + 3 g ghee (butter oil) per 100 g, with salt', { serving: ['1 katori', 150] }),
-  f('rajma', 'Rajma (kidney beans), boiled', { kcal: 127, protein: 8.7, carbs: 22.8, sugar: 0.3, fat: 0.5, fibre: 6.4, sodium: 2 }, SR + 'Beans, kidney, all types, mature seeds, cooked, boiled, without salt', { serving: ['1 katori', 150] }),
-  f('chana', 'Chickpeas (chana), boiled', { kcal: 164, protein: 8.9, carbs: 27.4, sugar: 4.8, fat: 2.6, fibre: 7.6, sodium: 7 }, SR + 'Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt', { serving: ['1 katori', 150] }),
-  f('oats', 'Oats, dry', { kcal: 389, protein: 16.9, carbs: 66.3, fat: 6.9, fibre: 10.6, sodium: 2 }, SR + 'Cereals, oats, regular and quick, not fortified, dry', { serving: ['1 bowl', 40] }),
+  f('rajma', 'Rajma (kidney beans), boiled', { kcal: 127, protein: 8.7, carbs: 22.8, sugar: 0.3, fat: 0.5, fibre: 6.4, sodium: 2 }, SR + 'Beans, kidney, all types, mature seeds, cooked, boiled, without salt', { serving: ['1 katori', 150] , cooking: true }),
+  f('chana', 'Chickpeas (chana), boiled', { kcal: 164, protein: 8.9, carbs: 27.4, sugar: 4.8, fat: 2.6, fibre: 7.6, sodium: 7 }, SR + 'Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt', { serving: ['1 katori', 150] , cooking: true }),
+  f('oats', 'Oats, dry', { kcal: 389, protein: 16.9, carbs: 66.3, fat: 6.9, fibre: 10.6, sodium: 2 }, SR + 'Cereals, oats, regular and quick, not fortified, dry', { serving: ['1 bowl', 40] , cooking: true }),
 
   // Chicken, paneer, eggs, curd
-  f('chicken-breast', 'Chicken breast, cooked', { kcal: 165, protein: 31, carbs: 0, fat: 3.6, satFat: 1, cholesterol: 85, sodium: 74 }, SR + 'Chicken, broilers or fryers, breast, meat only, cooked, roasted', { serving: ['1 piece', 120] }),
+  f('chicken-breast', 'Chicken breast, cooked', { kcal: 165, protein: 31, carbs: 0, fat: 3.6, satFat: 1, cholesterol: 85, sodium: 74 }, SR + 'Chicken, broilers or fryers, breast, meat only, cooked, roasted', { serving: ['1 piece', 120] , cooking: true }),
   // 85 g roasted chicken breast + 10 g whole-milk yogurt + 3 g oil + 2 g spices and lemon.
   f('chicken-tikka', 'Chicken tikka', { kcal: 173, protein: 26.7, carbs: 1.5, fat: 6.4, satFat: 1.3, sodium: 380 }, 'Estimate from USDA: 85 g roasted chicken breast, 10 g whole-milk yogurt, 3 g oil per 100 g, with salt and spices', { serving: ['6 pieces', 150] }),
   // 70 g paneer (about 265 kcal, 18 g protein, 21 g fat per 100 g) + 25 g peppers and onion + 3 g oil + 2 g yogurt.
   f('paneer-tikka', 'Paneer tikka', { kcal: 222, protein: 13, carbs: 3.6, sugar: 1.6, fat: 17.8, satFat: 9.5, fibre: 0.6, sodium: 300 }, 'Estimate: 70 g paneer (as on a typical full-fat pack), 25 g peppers and onion, 3 g oil per 100 g. Swap in your paneer label for accuracy', { serving: ['6 pieces', 150] }),
   // Raw egg for cooking (bhurji, omelette, egg roll); the oil goes in as its own ingredient.
-  f('egg-raw', 'Egg, raw', { kcal: 143, protein: 12.6, carbs: 0.7, sugar: 0.4, fat: 9.5, satFat: 3.1, cholesterol: 372, sodium: 142 }, SR + 'Egg, whole, raw, fresh', { serving: ['1 egg', 50] }),
+  f('egg-raw', 'Egg, raw', { kcal: 143, protein: 12.6, carbs: 0.7, sugar: 0.4, fat: 9.5, satFat: 3.1, cholesterol: 372, sodium: 142 }, SR + 'Egg, whole, raw, fresh', { serving: ['1 egg', 50] , cooking: true }),
   // There is no USDA entry for paneer; these are typical values on an Indian full-fat paneer pack.
-  f('paneer', 'Paneer', { kcal: 265, protein: 18.3, carbs: 1.2, fat: 20.8, satFat: 13, sodium: 25 }, 'Estimate: typical full-fat paneer pack, per 100 g. Swap in your own pack label for accuracy'),
-  f('egg-boiled', 'Egg, boiled', { kcal: 155, protein: 12.6, carbs: 1.1, sugar: 1.1, fat: 10.6, satFat: 3.3, cholesterol: 373, sodium: 124 }, SR + 'Egg, whole, cooked, hard-boiled', { serving: ['1 egg', 50] }),
-  f('curd', 'Curd (plain yogurt)', { kcal: 61, protein: 3.5, carbs: 4.7, sugar: 4.7, fat: 3.3, satFat: 2.1, cholesterol: 13, sodium: 46 }, SR + 'Yogurt, plain, whole milk', { serving: ['1 katori', 150] }),
-  f('ghee', 'Ghee', { kcal: 876, fat: 99.5, satFat: 61.9, cholesterol: 256 }, SR + 'Butter oil, anhydrous', { serving: ['1 tsp', 5], tsp: 5 }),
-  f('oil', 'Cooking oil (vegetable)', { kcal: 884, fat: 100, satFat: 15.6, transFat: 0.5 }, SR + 'Oil, soybean, salad or cooking', { serving: ['1 tsp', 4.5], tsp: 4.5 }),
-  f('onion', 'Onion', { kcal: 40, protein: 1.1, carbs: 9.3, sugar: 4.2, fibre: 1.7, fat: 0.1, sodium: 4 }, SR + 'Onions, raw', { serving: ['1 onion', 110] }),
+  f('paneer', 'Paneer', { kcal: 265, protein: 18.3, carbs: 1.2, fat: 20.8, satFat: 13, sodium: 25 }, 'Estimate: typical full-fat paneer pack, per 100 g. Swap in your own pack label for accuracy', { cooking: true }),
+  f('egg-boiled', 'Egg, boiled', { kcal: 155, protein: 12.6, carbs: 1.1, sugar: 1.1, fat: 10.6, satFat: 3.3, cholesterol: 373, sodium: 124 }, SR + 'Egg, whole, cooked, hard-boiled', { serving: ['1 egg', 50] , cooking: true }),
+  f('curd', 'Curd (plain yogurt)', { kcal: 61, protein: 3.5, carbs: 4.7, sugar: 4.7, fat: 3.3, satFat: 2.1, cholesterol: 13, sodium: 46 }, SR + 'Yogurt, plain, whole milk', { serving: ['1 katori', 150] , cooking: true }),
+  f('ghee', 'Ghee', { kcal: 876, fat: 99.5, satFat: 61.9, cholesterol: 256 }, SR + 'Butter oil, anhydrous', { serving: ['1 tsp', 5], tsp: 5 , cooking: true }),
+  f('oil', 'Cooking oil (vegetable)', { kcal: 884, fat: 100, satFat: 15.6, transFat: 0.5 }, SR + 'Oil, soybean, salad or cooking', { serving: ['1 tsp', 4.5], tsp: 4.5 , cooking: true }),
+  f('onion', 'Onion', { kcal: 40, protein: 1.1, carbs: 9.3, sugar: 4.2, fibre: 1.7, fat: 0.1, sodium: 4 }, SR + 'Onions, raw', { serving: ['1 onion', 110] , cooking: true }),
 
   // Fruit and nuts
   f('banana', 'Banana', { kcal: 89, protein: 1.1, carbs: 22.8, sugar: 12.2, fat: 0.3, fibre: 2.6, sodium: 1 }, SR + 'Bananas, raw', { serving: ['1 medium', 118] }),
