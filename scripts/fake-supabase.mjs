@@ -56,8 +56,12 @@ export function startFakeSupabase(port, users = { 'me@example.com': 'secret-pass
       if (req.method === 'GET') {
         const gt = url.searchParams.get('synced_at')?.replace(/^gt\./, '')
         const limit = Number(url.searchParams.get('limit') ?? 1000)
+        const store = url.searchParams.get('store')?.replace(/^eq\./, '')
+        const ids = url.searchParams.get('id')?.match(/^in\.\((.*)\)$/)?.[1].split(',')
         const list = [...rows.values()]
           .filter((r) => r.user_id === uid && (!gt || r.synced_at > gt))
+          .filter((r) => !store || r.store === store)
+          .filter((r) => !ids || ids.includes(r.id))
           .sort((a, b) => (a.synced_at < b.synced_at ? -1 : 1))
           .slice(0, limit)
         return send(res, 200, list)

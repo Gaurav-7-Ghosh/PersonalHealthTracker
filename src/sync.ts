@@ -38,7 +38,7 @@ export interface SyncStatus {
   error?: string
 }
 
-const RECORD_STORES: StoreName[] = ['entries', 'routines', 'sessions', 'inbox', 'foods', 'foodlog']
+const RECORD_STORES: StoreName[] = ['entries', 'routines', 'sessions', 'inbox', 'foods', 'foodlog', 'wellness']
 const BUCKET = 'photos'
 
 let state: SyncState = {}

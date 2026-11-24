@@ -4,3 +4,4 @@ dist-artifact
 screenshots
 *.log
 .DS_Store
+__pycache__/

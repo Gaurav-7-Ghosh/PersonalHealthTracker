@@ -166,3 +166,23 @@ flowchart TD
 - **Goal:** `settings.kcalGoal` (2,000 by default), set from the Goal link. Today shows a Calories today card.
 - **Nutrients:** the Nutrients card shows ten markers for the day (protein, carbs, fat, fibre, sugar, added sugar, saturated and trans fat, sodium, cholesterol) as bars against a daily limit (max), minimum (fibre) or target (protein, carbs). Bars turn amber at 80% of a limit and say how much is over past it. "N missing" counts logged foods whose label had no value for it, so the total may be low. Tapping a marker opens NutrientSheet: which foods it came from (largest first) and your own limit for it, saved to `settings.nutrientGoals`; "Back to the default" removes the override.
 - **Default limits:** in `NUTRIENTS` in `nutrition.ts`, from WHO guidance (ICMR-NIN where it agrees), scaled to the kcal goal where the guidance is a share of energy: sodium 2,000 mg, added sugar 10% of kcal, total sugar 90 g at 2,000 kcal, fat 30%, saturated 10%, trans 1%, cholesterol 300 mg, fibre 15 g per 1,000 kcal, protein 20% and carbs 50%. Adding a marker means adding it to `Nutrients` in `types.ts` and to `NUTRIENTS`; totals, scaling, the food form and the sheet all loop over that list.
+
+## 12. Garmin: steps, calories burnt, sleep
+
+```mermaid
+flowchart LR
+  G["Garmin Connect<br/>Export Your Data"] -->|"email, zip"| F["Files on the phone"]
+  H["Health<br/>WatchCard"] --> S["Garmin screen"] -->|Import| F
+  F --> R["garmin.ts readGarmin()<br/>UDSFile_*.json, *_sleepData.json"] --> W[("wellness<br/>one DayStats per day")]
+  W --> H
+  W -.sync.-> SB[("Supabase")]
+```
+
+- **Code:** `src/garmin.ts` (reading) and `screens/Garmin.tsx` (screen and `WatchCard`).
+- **Getting the file:** connect.garmin.com, Account, Data Management, Export Your Data. Garmin emails a link, usually within a day or two.
+- **Reading:** the zip is never loaded whole. `listZip` reads the central directory, and only JSON under the wellness and aggregator folders (names with `uds`, `sleep`, `wellness` or `aggregator`) is inflated with `DecompressionStream('deflate-raw')`. Activity FIT files are skipped. Loose JSON files can be picked too.
+- **Fields:** daily summaries give `totalSteps`, `dailyStepGoal`, `totalKilocalories` (or active plus `bmrKilocalories`), `activeKilocalories`, `totalDistanceMeters`, `restingHeartRate`. Sleep gives `sleepScores.overallScore` (or `sleepScores.overall.value`), the GMT start and end, and seconds of deep, light, REM and awake. `calendarDate` may be a string or `{ date }`. Nights the watch didn't record are skipped.
+- **Merging:** a new import wins for the fields it has; older fields on the same day are kept.
+- **Health:** `WatchCard` shows steps (with goal), kcal burnt (with active) and sleep score (with time asleep) for the day being looked at, and "Eaten X of Y kcal burnt" when food was logged. With no Garmin data at all it is a single row that opens the Garmin screen.
+- **Auto-sync:** the optional GitHub Actions job (docs/GARMIN.md) writes the same `wellness` rows into Supabase, and they arrive through normal sync.
+- **Garmin screen:** how to export, Import, 7-day averages (complete days before today), the days newest first (30, then Show all) and Remove Garmin data.

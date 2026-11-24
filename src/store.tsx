@@ -3,7 +3,7 @@ import * as db from './db'
 import * as sync from './sync'
 import { SEED_FOODS } from './foodSeed'
 import { SEED_ENTRIES, SEED_ROUTINES } from './seed'
-import type { Entry, Food, FoodLog, InboxItem, Route, Routine, RoutineItem, Session, SessionItem, SetLog, Settings } from './types'
+import type { DayStats, Entry, Food, FoodLog, InboxItem, Route, Routine, RoutineItem, Session, SessionItem, SetLog, Settings } from './types'
 import { deletePhoto, uid } from './util'
 
 const SEED_VERSION = 4
@@ -59,6 +59,10 @@ export interface Store {
   deleteFood: (id: string) => Promise<void>
   saveLog: (l: FoodLog) => Promise<void>
   deleteLog: (id: string) => Promise<void>
+  /** Garmin days (steps, calories burnt, sleep), by local day. */
+  wellness: Map<string, DayStats>
+  saveDays: (days: DayStats[]) => Promise<void>
+  clearDays: () => Promise<void>
 }
 
 const Ctx = createContext<Store | null>(null)
@@ -72,6 +76,7 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
   const [inbox, setInbox] = useState<InboxItem[]>([])
   const [foods, setFoods] = useState<Food[]>([])
   const [foodLog, setFoodLog] = useState<FoodLog[]>([])
+  const [wellness, setWellness] = useState<Map<string, DayStats>>(new Map())
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [active, setActive] = useState<Session | undefined>()
   const [stack, setStack] = useState<Route[]>([initialRoute])
@@ -101,7 +106,7 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
       s = { ...s, seedVersion: SEED_VERSION }
       await db.put('meta', 'settings', s)
     }
-    const [es, rs, ss, ib, act, fs, fl] = await Promise.all([
+    const [es, rs, ss, ib, act, fs, fl, wl] = await Promise.all([
       db.getAll<Entry>('entries'),
       db.getAll<Routine>('routines'),
       db.getAll<Session>('sessions'),
@@ -109,6 +114,7 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
       db.get<Session>('meta', 'active'),
       db.getAll<Food>('foods'),
       db.getAll<FoodLog>('foodlog'),
+      db.getAll<DayStats>('wellness'),
     ])
     setEntries(es.sort((a, b) => a.name.localeCompare(b.name)))
     setRoutines(rs)
@@ -116,6 +122,7 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
     setInbox(ib.sort((a, b) => b.createdAt - a.createdAt))
     setFoods(fs.sort(byName))
     setFoodLog(fl.sort((a, b) => a.at - b.at))
+    setWellness(new Map(wl.map((d) => [d.day, d])))
     setSettings(s)
     setActive(act ?? undefined)
     setReady(true)
@@ -154,6 +161,20 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
   const deleteLog = useCallback(async (id: string) => {
     await db.del('foodlog', id)
     setFoodLog((list) => list.filter((x) => x.id !== id))
+  }, [])
+
+  const saveDays = useCallback(async (days: DayStats[]) => {
+    for (const d of days) await db.put('wellness', d.day, d)
+    setWellness((m) => {
+      const next = new Map(m)
+      for (const d of days) next.set(d.day, d)
+      return next
+    })
+  }, [])
+
+  const clearDays = useCallback(async () => {
+    for (const k of await db.allKeys('wellness')) await db.del('wellness', k)
+    setWellness(new Map())
   }, [])
 
   const notify = useCallback((msg: string) => {
@@ -377,6 +398,9 @@ export function StoreProvider({ children, initialRoute }: { children: React.Reac
     deleteFood,
     saveLog,
     deleteLog,
+    wellness,
+    saveDays,
+    clearDays,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

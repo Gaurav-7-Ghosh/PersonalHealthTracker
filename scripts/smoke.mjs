@@ -3,6 +3,7 @@
 import { spawn } from 'node:child_process'
 import { mkdirSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { deflateRawSync } from 'node:zlib'
 import { chromium } from 'playwright'
 import { startFakeSupabase } from './fake-supabase.mjs'
 
@@ -23,6 +24,41 @@ const GREY = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQV
 await ctx.route('https://i.ytimg.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: GREY }))
 page.on('pageerror', (e) => errors.push(e.message))
 page.on('console', (m) => m.type() === 'error' && !m.text().startsWith('Failed to load resource') && errors.push(m.text()))
+
+/** A minimal zip (deflate) holding the given files, like Garmin's "Export your data" archive. */
+function makeZip(files) {
+  const local = []
+  const central = []
+  let offset = 0
+  const crc32 = (buf) => {
+    let c = ~0
+    for (const b of buf) {
+      c ^= b
+      for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1))
+    }
+    return ~c >>> 0
+  }
+  for (const [name, text] of Object.entries(files)) {
+    const raw = Buffer.from(text)
+    const data = deflateRawSync(raw)
+    const n = Buffer.from(name)
+    const h = Buffer.alloc(30)
+    h.writeUInt32LE(0x04034b50, 0), h.writeUInt16LE(20, 4), h.writeUInt16LE(8, 8), h.writeUInt32LE(crc32(raw), 14)
+    h.writeUInt32LE(data.length, 18), h.writeUInt32LE(raw.length, 22), h.writeUInt16LE(n.length, 26)
+    const c = Buffer.alloc(46)
+    c.writeUInt32LE(0x02014b50, 0), c.writeUInt16LE(20, 4), c.writeUInt16LE(20, 6), c.writeUInt16LE(8, 10), c.writeUInt32LE(crc32(raw), 16)
+    c.writeUInt32LE(data.length, 20), c.writeUInt32LE(raw.length, 24), c.writeUInt16LE(n.length, 28), c.writeUInt32LE(offset, 42)
+    local.push(h, n, data)
+    central.push(c, n)
+    offset += 30 + n.length + data.length
+  }
+  const dir = Buffer.concat(central)
+  const end = Buffer.alloc(22)
+  const count = Object.keys(files).length
+  end.writeUInt32LE(0x06054b50, 0), end.writeUInt16LE(count, 8), end.writeUInt16LE(count, 10), end.writeUInt32LE(dir.length, 12), end.writeUInt32LE(offset, 16)
+  return Buffer.concat([...local, dir, end])
+}
+const localDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 const shot = (n) => page.screenshot({ path: `${shots}/${n}.png` })
 const step = async (name, fn) => {
@@ -441,6 +477,46 @@ try {
     await p.getByText('Yesterday').waitFor()
     await p.getByTestId('kcal-total').getByText('105').waitFor()
     await c.close()
+  })
+
+  await step('garmin: import an export, see steps, burnt and sleep', async () => {
+    await page.getByRole('navigation').getByRole('button', { name: 'Health' }).click()
+    await page.getByRole('button', { name: /Import steps, calories burnt and sleep/ }).click()
+    await page.getByRole('heading', { name: 'Garmin' }).or(page.getByText('Import from Garmin Connect')).first().waitFor()
+    const today = localDay(new Date())
+    const y = new Date()
+    y.setDate(y.getDate() - 1)
+    const yesterday = localDay(y)
+    const uds = [
+      { calendarDate: yesterday, totalSteps: 6120, dailyStepGoal: 8000, totalKilocalories: 2310, activeKilocalories: 520, bmrKilocalories: 1790 },
+      { calendarDate: today, totalSteps: 8421, dailyStepGoal: 8000, totalKilocalories: 2480.0, activeKilocalories: 690.0, bmrKilocalories: 1790.0, restingHeartRate: 58 },
+    ]
+    const sleep = [
+      { calendarDate: today, sleepStartTimestampGMT: `${yesterday}T17:30:00.0`, sleepEndTimestampGMT: `${today}T01:10:00.0`, deepSleepSeconds: 5400, lightSleepSeconds: 14400, remSleepSeconds: 6000, awakeSleepSeconds: 600, sleepScores: { overallScore: 82, qualityScore: 80 } },
+      { calendarDate: yesterday, sleepWindowConfirmationType: 'UNCONFIRMED', sleepStartTimestampGMT: `${yesterday}T00:00:00.0` },
+    ]
+    const zip = makeZip({
+      'DI_CONNECT/DI-Connect-User/user_profile.json': '{}',
+      [`DI_CONNECT/DI-Connect-Aggregator/UDSFile_${yesterday}_${today}.json`]: JSON.stringify(uds),
+      [`DI_CONNECT/DI-Connect-Wellness/${yesterday}_${today}_12345678_sleepData.json`]: JSON.stringify(sleep),
+      'DI_CONNECT/DI-Connect-Uploaded-Files/UploadedFiles_0-_Part1.zip': 'not read',
+    })
+    await page.getByLabel('Garmin export file').setInputFiles({ name: 'garmin-export.zip', mimeType: 'application/zip', buffer: zip })
+    await page.getByText(/Imported 2 days/).waitFor()
+    await page.getByText('8,421').waitFor()
+    await shot('16a-garmin')
+    await page.getByRole('button', { name: 'Back' }).click()
+    const card = page.getByRole('button', { name: 'Garmin day' })
+    await card.getByTestId('garmin-steps').getByText('8,421').waitFor()
+    await card.getByTestId('garmin-kcal').getByText('2,480').waitFor()
+    await card.getByTestId('garmin-sleep').getByText('82').waitFor()
+    await card.getByTestId('garmin-sleep').getByText('7h 10m').waitFor()
+    await card.getByTestId('kcal-balance').waitFor()
+    await shot('16b-health-garmin')
+    await page.getByRole('button', { name: 'Previous day' }).click()
+    await card.getByTestId('garmin-steps').getByText('6,120').waitFor()
+    await card.getByTestId('garmin-sleep').getByText('–').waitFor()
+    await page.getByRole('button', { name: 'Next day' }).click()
   })
 
   await step('settings and light theme', async () => {

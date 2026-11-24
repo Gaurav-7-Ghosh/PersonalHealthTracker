@@ -1,0 +1,76 @@
+# Garmin auto-sync: three times a day, read the last few days from Garmin Connect and write them into your own
+# Supabase, where the app picks them up on its next sync. Setup and secrets: docs/GARMIN.md.
+# Until the secrets are added, every run just says "not set up" and succeeds.
+name: Garmin sync
+
+on:
+  schedule:
+    # 01:30, 09:30 and 17:30 UTC = 7 am, 3 pm and 11 pm in India.
+    - cron: '30 1,9,17 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Days back to read (today included, up to 60)'
+        default: '3'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: garmin-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
+      GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+      GARMIN_TOKENS: ${{ secrets.GARMIN_TOKENS }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      SUPABASE_EMAIL: ${{ secrets.SUPABASE_EMAIL }}
+      SUPABASE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+      GARMIN_TOKENSTORE: ~/.garminconnect
+      GARMIN_DAYS: ${{ inputs.days || '3' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet 'garminconnect==0.3.20' curl_cffi
+
+      # Garmin tokens are kept between runs so the job doesn't sign in from scratch every time (Garmin rate-limits
+      # fresh logins). The repo is public, so the cached copy is encrypted with your Supabase password.
+      - uses: actions/cache/restore@v4
+        with:
+          path: ~/garmin-tokens.enc
+          key: garmin-tokens-${{ github.run_id }}
+          restore-keys: garmin-tokens-
+      - name: Unlock saved Garmin tokens
+        run: |
+          if [ -f "$HOME/garmin-tokens.enc" ] && [ -n "$SUPABASE_PASSWORD" ]; then
+            mkdir -p -m 700 "$HOME/.garminconnect"
+            openssl enc -d -aes-256-cbc -pbkdf2 -pass env:SUPABASE_PASSWORD \
+              -in "$HOME/garmin-tokens.enc" -out "$HOME/.garminconnect/garmin_tokens.json" 2>/dev/null \
+              || rm -f "$HOME/.garminconnect/garmin_tokens.json"
+          fi
+
+      - name: Sync Garmin days to Supabase
+        run: python -I scripts/garmin_sync.py
+
+      - name: Lock Garmin tokens for next time
+        id: lock
+        if: always()
+        run: |
+          if [ -f "$HOME/.garminconnect/garmin_tokens.json" ] && [ -n "$SUPABASE_PASSWORD" ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:SUPABASE_PASSWORD \
+              -in "$HOME/.garminconnect/garmin_tokens.json" -out "$HOME/garmin-tokens.enc"
+            echo "save=1" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/cache/save@v4
+        if: always() && steps.lock.outputs.save == '1'
+        with:
+          path: ~/garmin-tokens.enc
+          key: garmin-tokens-${{ github.run_id }}

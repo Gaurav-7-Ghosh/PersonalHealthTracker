@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Garmin: import your Garmin Connect data export (Health tab, Garmin card) and see steps, calories burnt and last night's sleep score and duration for each day, next to what you ate ("Eaten 1,800 of 2,400 kcal burnt"). The Garmin screen shows how to request the export, 7-day averages and every imported day. The zip is read on the phone and nothing is uploaded; import again to add newer days. Garmin days sync between devices and are in backups.
+- Garmin auto-sync (optional): a free scheduled GitHub Actions job reads the last few days from Garmin Connect three times a day and writes them into your Supabase, so they show up in the app without an export. Unofficial, so it may need an update when Garmin changes its sign-in. Setup in docs/GARMIN.md.
 - Foods by the piece: pick "piece" as the unit for things you eat whole (a Kathi roll, a samosa). Enter the calories for 1 piece and log 1, 2 or ½.
 - New body map: a front and back anatomy figure with each muscle group in its own colour, closer to a gym chart. Tapping works as before; on body-part pages and exercise lists the muscles that don't apply are greyed out, and the shared workout image colours the muscles worked.
 - Health tab: a daily calorie counter with a ring against your goal (2,000 kcal to start; tap Goal to change it), protein, carbs and fat for the day, and what you ate grouped as Breakfast, Lunch, Snacks and Dinner. The count starts again at midnight on the phone; earlier days stay in history (use the arrows to look back or add to a past day).

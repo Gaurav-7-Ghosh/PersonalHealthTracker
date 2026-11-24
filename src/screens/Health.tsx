@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Chip, Confirm, Empty, Photo, Sheet, Stepper, TopBar } from '../components/ui'
 import { useStore } from '../store'
+import { WatchCard } from './Garmin'
 import {
   MEALS,
   NUTRIENTS,
@@ -93,6 +94,8 @@ export function Health() {
           </button>
         </div>
       </section>
+
+      <WatchCard day={day} eaten={t.kcal} />
 
       <NutrientCard logs={logs} t={t} onOpen={setDetail} />
 
