@@ -2127,3 +2127,74 @@ p.warn {
 .warn-ink {
   color: var(--warn-ink);
 }
+
+/* Garmin: steps, calories burnt and sleep */
+.watch-card,
+.watch-empty {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.watch-card .section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.watch-empty {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.watch-empty > span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.watch-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.watch-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.watch-stat .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.watch-stat .stat-val {
+  font-family: var(--display);
+  font-size: 24px;
+}
+.watch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--r);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.watch-row .list-main {
+  flex: 1;
+  min-width: 0;
+}
+.watch-cells {
+  display: grid;
+  grid-template-columns: 4.2em 3.4em 2em;
+  gap: 8px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.steps-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

@@ -4,7 +4,7 @@ import { Confirm, Stepper } from '../components/ui'
 import * as db from '../db'
 import { useStore } from '../store'
 import * as sync from '../sync'
-import type { Entry, Food, FoodLog, InboxItem, Routine, Session, Settings as SettingsT } from '../types'
+import type { DayStats, Entry, Food, FoodLog, InboxItem, Routine, Session, Settings as SettingsT } from '../types'
 import { ago, blobToDataUrl, dataUrlToBlob, savePhoto } from '../util'
 
 interface Backup {
@@ -20,11 +20,13 @@ interface Backup {
   /** Added with the Health section; older backups don't have them. */
   foods?: Food[]
   foodlog?: FoodLog[]
+  /** Garmin days; added with the Garmin import. */
+  wellness?: DayStats[]
 }
 
 export function Settings() {
   const store = useStore()
-  const { settings, saveSettings, entries, routines, sessions, inbox, foods, foodLog, notify, reload } = store
+  const { settings, saveSettings, entries, routines, sessions, inbox, foods, foodLog, wellness, notify, reload } = store
   const [usage, setUsage] = useState<string>()
   const [persisted, setPersisted] = useState<boolean>()
   const [pending, setPending] = useState<Backup | null>(null)
@@ -44,7 +46,7 @@ export function Settings() {
       const b = await db.get<Blob>('photos', id)
       if (b) photos[id] = await blobToDataUrl(b)
     }
-    const data: Backup = { app: 'workout-companion', version: 1, exportedAt: new Date().toISOString(), entries, routines, sessions, inbox, settings, photos, foods, foodlog: foodLog }
+    const data: Backup = { app: 'workout-companion', version: 1, exportedAt: new Date().toISOString(), entries, routines, sessions, inbox, settings, photos, foods, foodlog: foodLog, wellness: [...wellness.values()] }
     const name = `workout-backup-${new Date().toISOString().slice(0, 10)}.json`
     const file = new File([JSON.stringify(data)], name, { type: 'application/json' })
     try {
@@ -84,6 +86,7 @@ export function Settings() {
     for (const i of b.inbox) await db.put('inbox', i.id, i)
     for (const f of b.foods ?? []) await db.put('foods', f.id, f)
     for (const l of b.foodlog ?? []) await db.put('foodlog', l.id, l)
+    for (const d of b.wellness ?? []) await db.put('wellness', d.day, d)
     for (const [id, d] of Object.entries(b.photos)) await savePhoto(id, await dataUrlToBlob(d))
     await db.put('meta', 'settings', b.settings)
     await reload()

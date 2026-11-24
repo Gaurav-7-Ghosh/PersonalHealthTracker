@@ -2,9 +2,9 @@
 // Records are kept in memory by the store; this file only persists them.
 
 const DB_NAME = 'workout-companion'
-const VERSION = 2
-// Version 2 added foods and foodlog; opening creates any store that is missing.
-export const STORES = ['entries', 'routines', 'sessions', 'inbox', 'photos', 'meta', 'foods', 'foodlog'] as const
+const VERSION = 3
+// Version 2 added foods and foodlog, version 3 wellness (Garmin days); opening creates any store that is missing.
+export const STORES = ['entries', 'routines', 'sessions', 'inbox', 'photos', 'meta', 'foods', 'foodlog', 'wellness'] as const
 export type StoreName = (typeof STORES)[number]
 
 let dbPromise: Promise<IDBDatabase> | null = null

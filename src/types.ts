@@ -210,6 +210,38 @@ export interface FoodLog {
   updatedAt: number
 }
 
+/** Last night's sleep, as the watch scored it. Durations are in seconds. */
+export interface SleepStats {
+  /** Garmin sleep score, 0 to 100. */
+  score?: number
+  /** Bed and wake times, ms since epoch. */
+  start?: number
+  end?: number
+  deep?: number
+  light?: number
+  rem?: number
+  awake?: number
+}
+
+/**
+ * One local day of watch data (steps, calories burnt, sleep), imported from a Garmin Connect export.
+ * Keyed by `day`. Sleep belongs to the day you woke up on.
+ */
+export interface DayStats {
+  day: string
+  steps?: number
+  stepGoal?: number
+  /** Calories burnt in the whole day: active plus resting (BMR). */
+  kcalTotal?: number
+  kcalActive?: number
+  kcalResting?: number
+  distanceM?: number
+  restingHr?: number
+  sleep?: SleepStats
+  source: 'garmin'
+  updatedAt: number
+}
+
 export type Route =
   | { name: 'today' }
   | { name: 'body' }
@@ -232,3 +264,4 @@ export type Route =
   | { name: 'health' }
   | { name: 'foods'; day?: string; meal?: Meal; pick?: string }
   | { name: 'foodEdit'; id?: string; day?: string; meal?: Meal }
+  | { name: 'garmin' }
