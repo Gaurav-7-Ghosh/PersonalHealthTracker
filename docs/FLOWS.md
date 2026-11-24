@@ -184,4 +184,5 @@ flowchart LR
 - **Fields:** daily summaries give `totalSteps`, `dailyStepGoal`, `totalKilocalories` (or active plus `bmrKilocalories`), `activeKilocalories`, `totalDistanceMeters`, `restingHeartRate`. Sleep gives `sleepScores.overallScore` (or `sleepScores.overall.value`), the GMT start and end, and seconds of deep, light, REM and awake. `calendarDate` may be a string or `{ date }`. Nights the watch didn't record are skipped.
 - **Merging:** a new import wins for the fields it has; older fields on the same day are kept.
 - **Health:** `WatchCard` shows steps (with goal), kcal burnt (with active) and sleep score (with time asleep) for the day being looked at, and "Eaten X of Y kcal burnt" when food was logged. With no Garmin data at all it is a single row that opens the Garmin screen.
+- **Auto-sync:** the optional GitHub Actions job (docs/GARMIN.md) writes the same `wellness` rows into Supabase, and they arrive through normal sync.
 - **Garmin screen:** how to export, Import, 7-day averages (complete days before today), the days newest first (30, then Show all) and Remove Garmin data.

@@ -9,7 +9,8 @@
     "build": "vite build",
     "build:artifact": "vite build --mode artifact && node scripts/make-artifact.mjs",
     "preview": "vite preview",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "test:garmin-sync": "node scripts/test-garmin-sync.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

@@ -131,6 +131,7 @@ export function Garmin() {
           <li>Tap Import and pick the zip. It is read here on the phone; nothing is uploaded.</li>
         </ol>
         <p className="muted small">Import again any time to add newer days. You can also pick the UDSFile and sleepData JSON files on their own.</p>
+        <p className="muted small">With sync turned on, the optional Garmin auto-sync job (see docs/GARMIN.md in the repo) brings new days in by itself.</p>
         <input ref={fileRef} type="file" accept=".zip,.json,application/zip,application/json" multiple hidden aria-label="Garmin export file" onChange={(e) => importFiles(e.target.files)} />
         <button type="button" className="btn primary" disabled={!!busy} onClick={() => fileRef.current?.click()}>
           <Icon name="upload" size={18} /> {busy ?? 'Import Garmin export'}

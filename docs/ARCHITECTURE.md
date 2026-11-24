@@ -73,7 +73,7 @@ src/
     Garmin.tsx        Garmin import screen (how to export, import, 7-day averages, days) and WatchCard for Health
     Settings.tsx      timers, backup/restore, Shortcut setup, starter data, version
 public/             manifest.webmanifest, icon.svg, sw.js
-scripts/            smoke.mjs (Playwright), fake-supabase.mjs (sync test server), make-artifact.mjs (claude.ai preview build)
+scripts/            smoke.mjs (Playwright), fake-supabase.mjs (sync test server), garmin_sync.py (Garmin auto-sync job, docs/GARMIN.md) and test-garmin-sync.mjs, make-artifact.mjs (claude.ai preview build)
 shims/              jsx-runtime shim used only by the preview build
 ```
 

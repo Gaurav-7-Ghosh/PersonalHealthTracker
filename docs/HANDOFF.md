@@ -36,7 +36,7 @@ Later it will add meal plans and macros, and Garmin data. It's a senior develope
 | Calorie day = local calendar day (`YYYY-MM-DD`), turning over at midnight on the device; past days are kept | Gaurav asked for a counter that resets at 12 am; keeping days gives history for free |
 | A food stores the label's values for the amount printed (`per` + `unit`); a log stores grams eaten and a copy of those values | Labels in India print per 100 g or per serving; editing a food later must not rewrite past days |
 | Nutrient limits default to WHO guidance (ICMR-NIN where it agrees), scaled to the kcal goal where given as a share of energy, and are editable per marker | General adult guides, not medical advice; he can match them to his own targets |
-| Garmin data comes from Garmin Connect's "Export your data" zip, read on the device (`garmin.ts`); a scheduled auto-sync job comes after | The official Garmin Health API needs an approved business application and a server; Garmin's sign-in can't be called from a web page. Gaurav chose "export now, auto-sync later" (2026-11-24) |
+| Garmin data comes from Garmin Connect's "Export your data" zip, read on the device (`garmin.ts`); a scheduled GitHub Actions job (`scripts/garmin_sync.py`, unofficial `garminconnect`) writes new days into his Supabase as `wellness` rows | The official Garmin Health API needs an approved business application and a server; Garmin's sign-in can't be called from a web page. Gaurav chose "export now, auto-sync later" (2026-11-24) |
 | Starter foods from USDA FoodData Central (CC0); Indian dishes are estimates built from USDA ingredients, recipe in `source` | Open, free data; there is no open lab data for home-style dal or tikka. He edits them to match his cooking |
 
 ## What 0.1.0 contains
@@ -65,6 +65,7 @@ See [CHANGELOG.md](../CHANGELOG.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [FLO
 - Nutrients on the Health tab: sodium, sugar, added sugar, fibre, saturated and trans fat, cholesterol, protein, carbs and fat against daily limits (WHO-based defaults, editable per marker in `settings.nutrientGoals`), with a per-marker breakdown of which foods it came from. See flow 11.
 - Body map redrawn as a coloured front and back anatomy figure (each muscle group its own colour), in the style of a reference chart Gaurav shared; the drawing is original.
 - Garmin import on the Health tab: steps, calories burnt and sleep score per day from the Garmin Connect export zip. See flow 12 in [FLOWS.md](FLOWS.md).
+- Garmin auto-sync: `.github/workflows/garmin-sync.yml` runs `scripts/garmin_sync.py` three times a day and writes `wellness` rows into Supabase. Idle until Gaurav adds the secrets. See [GARMIN.md](GARMIN.md).
 - Release these as 0.2.0 when ready (see Releases in the README).
 
 ## Deploy setup
@@ -78,7 +79,10 @@ See [CHANGELOG.md](../CHANGELOG.md), [ARCHITECTURE.md](ARCHITECTURE.md) and [FLO
 1. **Tag `v0.1.0`.** Claude's environment can't push tags, so Gaurav runs `git pull && git tag -a v0.1.0 -m "0.1.0" && git push origin v0.1.0`. Optionally draft a GitHub release from the changelog.
 2. **Shorter address (optional, free).** Either rename the repo (for example `fit`, giving `gaurav-7-ghosh.github.io/fit`) or use Cloudflare Pages or Netlify for `name.pages.dev` or `name.netlify.app`. Moving address means a backup and restore, because data is tied to the address. Not decided yet.
 3. **OneNote import (not built).** Options: Microsoft Graph API (needs Microsoft sign-in and network), or on-device text recognition with Tesseract.js (adds a few MB). Today he copies text with iPhone Live Text and pastes it into cues.
-4. **Garmin.** Export import is built (flow 12). Next, as Gaurav chose: a free scheduled job that signs in to Garmin with an unofficial client and writes new days into his Supabase `records` table as `wellness` rows, so the app picks them up through sync. Unofficial, so it may break when Garmin changes its sign-in. The field names were written from public descriptions of the export; check them against Gaurav's real export (`UDSFile_*.json`, `*_sleepData.json`) when he has it.
+4. **Garmin.** Export import and the auto-sync job are built ([GARMIN.md](GARMIN.md)). Still open:
+   - Gaurav adds the GitHub secrets, plus `GARMIN_TOKENS` if his account uses MFA, and runs the job once.
+   - Check the field names against his real export (`UDSFile_*.json`, `*_sleepData.json`) and a live run. They were written from public descriptions and the library's docs, not from his data.
+   - The job pins `garminconnect==0.3.20`. Bump it when Garmin breaks sign-in.
 5. **Meals, recipes and weight (SRS, later).** Daily calorie, macro and nutrient tracking with daily limits is built (Health tab). Still open: recipes and meal plans, shop links for items, weigh-ins from his scale, scanning a barcode or reading a label photo (both need a free service or on-device OCR; not decided).
 6. **Routines.** The screens still exist and can be reached from Today when any routine exists, but there are no presets by design. Decide whether to keep or remove them.
 
